@@ -312,9 +312,25 @@
     // Initialize store
     const unsubscribe = initializeStore();
     
+    // Create a ResizeObserver to handle container resizing
+    const resizeObserver = new ResizeObserver(() => {
+      if (container && storeValue?.vsm) {
+        // Re-render on resize
+        renderVSMWithSelection(storeValue.vsm, storeValue.selection);
+      }
+    });
+    
+    // Start observing the container
+    if (container) {
+      resizeObserver.observe(container);
+    }
+    
     // Return cleanup function
     return () => {
       unsubscribe();
+      
+      // Stop observing resize events
+      resizeObserver.disconnect();
       
       // Clean up D3 elements if needed
       if (renderedVSM && renderedVSM.svg) {
@@ -367,8 +383,9 @@
   </div>
   
   <div class="mb-8">
-    <div class="w-full border border-gray-200 rounded-md overflow-hidden">
-      <div bind:this={container} class="w-full h-[400px]"></div>
+    <div class="w-full border border-gray-200 rounded-md overflow-hidden"
+         style="resize: both; min-height: 400px;">
+      <div bind:this={container} class="w-full h-full" style="min-height: 400px;"></div>
     </div>
     
     <!-- External zoom controls -->

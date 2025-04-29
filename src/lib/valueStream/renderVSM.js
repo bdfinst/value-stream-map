@@ -49,12 +49,22 @@ function renderVSM({
   // Clear the container
   d3.select(container).selectAll('*').remove();
   
-  // Create SVG container with zoom behavior
+  // Get the actual dimensions of the container
+  const containerRect = container.getBoundingClientRect();
+  const containerWidth = containerRect.width || width;
+  const containerHeight = containerRect.height || height;
+  
+  // Adjust viewBox to maintain aspect ratio based on container size
+  const viewBoxWidth = Math.max(width, containerWidth);
+  const viewBoxHeight = Math.max(height, containerHeight);
+  
+  // Create SVG container with zoom behavior and responsive sizing
   const svg = d3.select(container)
     .append('svg')
-    .attr('width', width)
-    .attr('height', height)
-    .attr('viewBox', `0 0 ${width} ${height}`)
+    .attr('width', '100%')
+    .attr('height', '100%')
+    .attr('viewBox', `0 0 ${viewBoxWidth} ${viewBoxHeight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
     .attr('class', 'vsm-container');
   
   // Create a group for zoom/pan behavior
@@ -229,24 +239,29 @@ function renderProcessBlocks(group, processes, options) {
       onClick(d);
     });
   
-  // Add process names
-  processGroups.append('text')
-    .attr('x', blockWidth / 2)
-    .attr('y', blockHeight / 2)
-    .attr('text-anchor', 'middle')
-    .attr('dominant-baseline', 'middle')
-    .attr('class', 'process-name')
+  // Add process names with text wrapping
+  processGroups.append('foreignObject')
+    .attr('x', 10) // Add padding
+    .attr('y', 10)
+    .attr('width', blockWidth - 20) // Subtract padding and leave space for edit button
+    .attr('height', blockHeight - 20)
+    .append('xhtml:div')
+    .attr('class', 'process-name-container w-full h-full flex items-center justify-center')
     .style('font-weight', 'bold')
     .style('font-size', '14px')
+    .style('text-align', 'center')
+    .style('word-wrap', 'break-word')
+    .style('line-height', '1.2')
+    .style('overflow', 'hidden')
     .text(d => d.name);
   
-  // Add edit button with Font Awesome
+  // Add edit button with Font Awesome (positioned in top-right corner)
   const editGroup = processGroups.append('foreignObject')
     .attr('class', 'edit-button')
-    .attr('x', blockWidth - 32)
-    .attr('y', 4)
-    .attr('width', 28)
-    .attr('height', 28)
+    .attr('x', blockWidth - 28)
+    .attr('y', 2)
+    .attr('width', 24)
+    .attr('height', 24)
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
       event.stopPropagation(); // Prevent triggering block click
