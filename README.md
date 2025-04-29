@@ -1,38 +1,151 @@
-# sv
+# Value Stream Map
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+An interactive Value Stream Mapping (VSM) tool built with SvelteKit and D3.js. This application allows you to create, visualize, and analyze value streams with support for process blocks, connections, and comprehensive metrics including rework cycles.
 
-## Creating a project
+![Value Stream Map](./static/vsm-screenshot.png)
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Features
 
-```bash
-# create a new project in the current directory
-npx sv create
+- **Interactive Diagram Editor**:
+  - Create, position, and connect process blocks
+  - Drag-and-drop interface for easy layout adjustments
+  - Edit process and connection properties
+  - Add rework/feedback loops with visual distinction
 
-# create a new project in my-app
-npx sv create my-app
-```
+- **Comprehensive Metrics**:
+  - Process times and wait times
+  - Complete & Accurate (C/A) percentages for quality tracking
+  - Rework calculations and impact analysis
+  - Best-case and worst-case scenario measurements
+  - Value-added ratio calculations
 
-## Developing
+- **Modern UI**:
+  - Responsive design with Tailwind CSS
+  - Modals for editing and configuration
+  - Zoom and fit controls for the diagram
+  - Comprehensive metrics guide with tooltips
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18 or newer)
+- npm (v8 or newer)
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone git@github.com:bdfinst/value-stream-map.git
+   cd value-stream-map
+   ```
+
+2. Install dependencies:
+
+   ```bash
+   npm ci
+   ```
+
+### Development
+
+Start the development server:
 
 ```bash
 npm run dev
+```
 
-# or start the server and open the app in a new browser tab
+The application will be available at [http://localhost:5173](http://localhost:5173) (or another port if 5173 is in use).
+
+To open the application automatically in your default browser:
+
+```bash
 npm run dev -- --open
 ```
 
-## Building
+### Testing
 
-To create a production version of your app:
+Run all tests (unit and e2e):
+
+```bash
+npm test
+```
+
+Run only unit tests:
+
+```bash
+npm run test:unit
+```
+
+Run end-to-end tests:
+
+```bash
+npm run test:e2e
+```
+
+Run unit tests in watch mode:
+
+```bash
+npm run test:unit -- --watch
+```
+
+### Linting and Formatting
+
+Lint the codebase:
+
+```bash
+npm run lint
+```
+
+Format the code:
+
+```bash
+npm run format
+```
+
+### Building for Production
+
+Build the application for production:
 
 ```bash
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+Preview the production build:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+npm run preview
+```
+
+## Using the Application
+
+1. **Create Process Blocks**:
+   - Click "Add Process" to create a new process
+   - Configure the process name, processing time, and C/A percentage
+   - Drag to position the process on the canvas
+
+2. **Create Connections**:
+   - Click "Add Connection" to create a new connection
+   - Select source and target processes
+   - Set wait time between processes
+
+3. **Create Rework Loops**:
+   - Add a connection from a downstream process to an earlier process
+   - The connection will automatically format as a rework connection
+
+4. **View Metrics**:
+   - See process-level metrics on each process block
+   - View VSM-level metrics in the metrics panel
+   - Toggle between best-case and worst-case scenarios
+
+5. **Help & Documentation**:
+   - Click the help icon in the header for a comprehensive metrics guide
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Inspired by Lean and Value Stream Mapping methodologies
+- Built with modern web technologies for interactive visualization
