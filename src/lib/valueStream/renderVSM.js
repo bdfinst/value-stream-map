@@ -2,6 +2,7 @@ import * as d3 from 'd3';
 
 import { createConnectionDragBehavior } from './connectionDrag.js';
 import { createProcessDragBehavior } from './draggable.js';
+import { formatDecimal } from '../utils/formatters.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock
@@ -483,7 +484,7 @@ function renderConnections(group, connections, processes, options) {
 				.style('font-size', '11px')
 				.style('font-weight', 'bold')
 				.style('fill', strokeColor)
-				.text(`WT: ${d.metrics.waitTime}`);
+				.text(`WT: ${formatDecimal(d.metrics.waitTime)}`);
 
 			// Add edit button directly inside the wait time label group
 			if (onEditClick || onClick) {
@@ -651,7 +652,7 @@ function renderMetricsLabels(group, processes, connections, options) {
 		.attr('text-anchor', 'middle')
 		.attr('class', 'metric-label')
 		.style('font-size', '10px')
-		.text((d) => `PT: ${d.metrics.processTime || 0}`);
+		.text((d) => `PT: ${formatDecimal(d.metrics.processTime || 0)}`);
 
 	// Add %C/A metric (percentage complete and accurate)
 	metricGroups
@@ -693,7 +694,7 @@ function renderMetricsLabels(group, processes, connections, options) {
 			// Calculate total cycle time: process time + incoming wait time
 			const totalCycleTime = processTime + incomingWaitTime;
 
-			return `CT: ${totalCycleTime}`;
+			return `CT: ${formatDecimal(totalCycleTime)}`;
 		});
 
 	// Add rework cycle time (if process has rework or C/A < 100%)
@@ -715,7 +716,7 @@ function renderMetricsLabels(group, processes, connections, options) {
 		})
 		.text((d) => {
 			const reworkTime = d.metrics.reworkCycleTime || 0;
-			return reworkTime > 0 ? `RT: +${Math.round(reworkTime * 10) / 10}` : '';
+			return reworkTime > 0 ? `RT: +${formatDecimal(reworkTime)}` : '';
 		});
 }
 

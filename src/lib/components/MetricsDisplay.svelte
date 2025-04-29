@@ -1,5 +1,6 @@
 <script>
 	import MetricCard from './MetricCard.svelte';
+	import { formatDecimal } from '$lib/utils/formatters.js';
 	export let vsm;
 </script>
 
@@ -8,10 +9,14 @@
 		<!-- Primary Flow metrics -->
 		<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">Primary Flow</h3>
 		<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-			<MetricCard title="Lead Time" value={vsm.metrics.totalLeadTime} isException={false} />
+			<MetricCard
+				title="Lead Time"
+				value={formatDecimal(vsm.metrics.totalLeadTime)}
+				isException={false}
+			/>
 			<MetricCard
 				title="Value-Added Time"
-				value={vsm.metrics.totalValueAddedTime}
+				value={formatDecimal(vsm.metrics.totalValueAddedTime)}
 				isException={false}
 			/>
 			<MetricCard
@@ -26,12 +31,12 @@
 		<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 			<MetricCard
 				title="Exception Lead Time"
-				value={vsm.metrics.worstCaseLeadTime || vsm.metrics.totalLeadTime}
+				value={formatDecimal(vsm.metrics.worstCaseLeadTime || vsm.metrics.totalLeadTime)}
 				isException={true}
 			/>
 			<MetricCard
 				title="Total Rework Time"
-				value={vsm.metrics.totalReworkTime || 0}
+				value={formatDecimal(vsm.metrics.totalReworkTime || 0)}
 				isException={true}
 			/>
 			<MetricCard
