@@ -6,6 +6,8 @@
 	let { children } = $props();
 </script>
 
-<div class="min-h-screen bg-[var(--color-defense-dark)] bg-gradient-to-br from-[var(--color-defense-dark)] to-[var(--color-hero-navy)]">
+<div
+	class="min-h-screen bg-[var(--color-defense-dark)] bg-gradient-to-br from-[var(--color-defense-dark)] to-[var(--color-hero-navy)]"
+>
 	{@render children()}
 </div>

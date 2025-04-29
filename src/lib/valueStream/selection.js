@@ -8,9 +8,9 @@
  * @returns {SelectionState} - Initial selection state
  */
 function getSelectionState() {
-  return {
-    selectedIds: []
-  };
+	return {
+		selectedIds: []
+	};
 }
 
 /**
@@ -20,23 +20,23 @@ function getSelectionState() {
  * @returns {SelectionState} - Updated selection state
  */
 function toggleSelection(state, id) {
-  // Check if the item is already selected
-  const isSelected = state.selectedIds.includes(id);
-  
-  // Create a new selection state with the item toggled
-  if (isSelected) {
-    // If already selected, deselect it
-    return {
-      ...state,
-      selectedIds: []
-    };
-  } else {
-    // If not selected, select only this item (deselect others)
-    return {
-      ...state,
-      selectedIds: [id]
-    };
-  }
+	// Check if the item is already selected
+	const isSelected = state.selectedIds.includes(id);
+
+	// Create a new selection state with the item toggled
+	if (isSelected) {
+		// If already selected, deselect it
+		return {
+			...state,
+			selectedIds: []
+		};
+	} else {
+		// If not selected, select only this item (deselect others)
+		return {
+			...state,
+			selectedIds: [id]
+		};
+	}
 }
 
 /**
@@ -46,10 +46,10 @@ function toggleSelection(state, id) {
  * @returns {SelectionState} - Updated selection state
  */
 function selectItem(state, id) {
-  return {
-    ...state,
-    selectedIds: [id]
-  };
+	return {
+		...state,
+		selectedIds: [id]
+	};
 }
 
 export { getSelectionState, toggleSelection, selectItem };

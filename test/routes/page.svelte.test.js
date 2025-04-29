@@ -7,7 +7,7 @@ describe('/+page.svelte', () => {
 		// Skipping this test due to import resolution issues
 		expect(true).toBe(true);
 	});
-	
+
 	// Add a passing test so the file doesn't fail
 	test('placeholder test', () => {
 		expect(true).toBe(true);

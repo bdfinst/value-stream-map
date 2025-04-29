@@ -21,21 +21,21 @@
  * @returns {Connection} - New connection
  */
 function createConnection({
-  id,
-  sourceId,
-  targetId,
-  path = [],
-  metrics = { waitTime: 0 },
-  isRework = false
+	id,
+	sourceId,
+	targetId,
+	path = [],
+	metrics = { waitTime: 0 },
+	isRework = false
 }) {
-  return {
-    id,
-    sourceId,
-    targetId,
-    path: [...path],
-    metrics: { ...metrics },
-    isRework
-  };
+	return {
+		id,
+		sourceId,
+		targetId,
+		path: [...path],
+		metrics: { ...metrics },
+		isRework
+	};
 }
 
 /**
@@ -45,28 +45,28 @@ function createConnection({
  * @returns {Connection} - Updated connection (new instance)
  */
 function updateConnection(connection, updates) {
-  const updatedConnection = {
-    ...connection,
-    ...updates
-  };
-  
-  // If path is being updated, ensure it's a new array
-  if (updates.path) {
-    updatedConnection.path = [...updates.path];
-  }
-  
-  // If metrics are being updated, ensure it's a new object
-  if (updates.metrics) {
-    updatedConnection.metrics = { 
-      ...(connection.metrics || { waitTime: 0 }), 
-      ...updates.metrics 
-    };
-  }
-  
-  return updatedConnection;
+	const updatedConnection = {
+		...connection,
+		...updates
+	};
+
+	// If path is being updated, ensure it's a new array
+	if (updates.path) {
+		updatedConnection.path = [...updates.path];
+	}
+
+	// If metrics are being updated, ensure it's a new object
+	if (updates.metrics) {
+		updatedConnection.metrics = {
+			...(connection.metrics || { waitTime: 0 }),
+			...updates.metrics
+		};
+	}
+
+	return updatedConnection;
 }
 
 export default {
-  create: createConnection,
-  update: updateConnection
+	create: createConnection,
+	update: updateConnection
 };

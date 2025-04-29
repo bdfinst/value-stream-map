@@ -29,24 +29,24 @@
  * @returns {ProcessBlock} - New process block
  */
 function createProcessBlock({
-  id,
-  name,
-  description = '',
-  position = { x: 0, y: 0 },
-  metrics = { processTime: 0, completeAccurate: 100 }
+	id,
+	name,
+	description = '',
+	position = { x: 0, y: 0 },
+	metrics = { processTime: 0, completeAccurate: 100 }
 }) {
-  return {
-    id,
-    name,
-    description,
-    position: { ...position },
-    metrics: { 
-      ...metrics,
-      processTime: metrics.processTime || 0,
-      completeAccurate: metrics.completeAccurate !== undefined ? metrics.completeAccurate : 100,
-      cycleTime: (metrics.processTime || 0)
-    }
-  };
+	return {
+		id,
+		name,
+		description,
+		position: { ...position },
+		metrics: {
+			...metrics,
+			processTime: metrics.processTime || 0,
+			completeAccurate: metrics.completeAccurate !== undefined ? metrics.completeAccurate : 100,
+			cycleTime: metrics.processTime || 0
+		}
+	};
 }
 
 /**
@@ -56,34 +56,34 @@ function createProcessBlock({
  * @returns {ProcessBlock} - Updated process block (new instance)
  */
 function updateProcessBlock(process, updates) {
-  const updatedProcess = {
-    ...process,
-    ...updates
-  };
-  
-  // If position is being updated, ensure it's a new object
-  if (updates.position) {
-    updatedProcess.position = { ...updatedProcess.position, ...updates.position };
-  }
-  
-  // If metrics are being updated, ensure it's a new object and recalculate derived values
-  if (updates.metrics) {
-    // Create a new metrics object that preserves all existing metrics and adds/updates new ones
-    updatedProcess.metrics = { ...process.metrics, ...updates.metrics };
-    
-    // Ensure completeAccurate is set (default to 100%)
-    if (updatedProcess.metrics.completeAccurate === undefined) {
-      updatedProcess.metrics.completeAccurate = 100;
-    }
-    
-    // Cycle time is just the process time now (wait time added in renderer)
-    updatedProcess.metrics.cycleTime = (updatedProcess.metrics.processTime || 0);
-  }
-  
-  return updatedProcess;
+	const updatedProcess = {
+		...process,
+		...updates
+	};
+
+	// If position is being updated, ensure it's a new object
+	if (updates.position) {
+		updatedProcess.position = { ...updatedProcess.position, ...updates.position };
+	}
+
+	// If metrics are being updated, ensure it's a new object and recalculate derived values
+	if (updates.metrics) {
+		// Create a new metrics object that preserves all existing metrics and adds/updates new ones
+		updatedProcess.metrics = { ...process.metrics, ...updates.metrics };
+
+		// Ensure completeAccurate is set (default to 100%)
+		if (updatedProcess.metrics.completeAccurate === undefined) {
+			updatedProcess.metrics.completeAccurate = 100;
+		}
+
+		// Cycle time is just the process time now (wait time added in renderer)
+		updatedProcess.metrics.cycleTime = updatedProcess.metrics.processTime || 0;
+	}
+
+	return updatedProcess;
 }
 
 export default {
-  create: createProcessBlock,
-  update: updateProcessBlock
+	create: createProcessBlock,
+	update: updateProcessBlock
 };

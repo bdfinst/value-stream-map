@@ -1,16 +1,10 @@
 {
-    "rules": {
-        "at-rule-no-unknown": [
-            true,
-            {
-                "ignoreAtRules": [
-                    "tailwind",
-                    "apply",
-                    "variants",
-                    "responsive",
-                    "screen"
-                ]
-            }
-        ]
-    }
+	"rules": {
+		"at-rule-no-unknown": [
+			true,
+			{
+				"ignoreAtRules": ["tailwind", "apply", "variants", "responsive", "screen"]
+			}
+		]
+	}
 }

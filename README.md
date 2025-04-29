@@ -7,12 +7,14 @@ An interactive Value Stream Mapping (VSM) tool built with SvelteKit and D3.js. T
 ## Features
 
 - **Interactive Diagram Editor**:
+
   - Create, position, and connect process blocks
   - Drag-and-drop interface for easy layout adjustments
   - Edit process and connection properties
   - Add rework/feedback loops with visual distinction
 
 - **Comprehensive Metrics**:
+
   - Process times and wait times
   - Complete & Accurate (C/A) percentages for quality tracking
   - Rework calculations and impact analysis
@@ -120,20 +122,24 @@ npm run preview
 ## Using the Application
 
 1. **Create Process Blocks**:
+
    - Click "Add Process" to create a new process
    - Configure the process name, processing time, and C/A percentage
    - Drag to position the process on the canvas
 
 2. **Create Connections**:
+
    - Click "Add Connection" to create a new connection
    - Select source and target processes
    - Set wait time between processes
 
 3. **Create Rework Loops**:
+
    - Add a connection from a downstream process to an earlier process
    - The connection will automatically format as a rework connection
 
 4. **View Metrics**:
+
    - See process-level metrics on each process block
    - View VSM-level metrics in the metrics panel
    - Toggle between best-case and worst-case scenarios

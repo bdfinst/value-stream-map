@@ -85,8 +85,7 @@
 		}
 	];
 
-	// Controls whether tooltips are shown on hover or click (for mobile)
-	const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+	// Mobile detection is now handled by CSS media queries
 </script>
 
 <div

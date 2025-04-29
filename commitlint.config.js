@@ -1,3 +1,3 @@
-import commitlintConfig from '@defense-unicorns/website-commons/commitlint'
+import commitlintConfig from '@defense-unicorns/website-commons/commitlint';
 
-export default commitlintConfig
+export default commitlintConfig;

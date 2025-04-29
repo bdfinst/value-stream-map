@@ -20,16 +20,19 @@ implement this visualization approach effectively.
 For a value stream map, we'll need to visualize:
 
 1. **Process Blocks**
+
    - Rectangles representing value-adding activities
    - Data attributes for process time, resources, quality metrics
    - Interactive elements for editing
 
 2. **Flow Connections**
+
    - Arrows connecting process steps
    - Indicators for wait time, transfer batch size
    - Path editing capabilities
 
 3. **Data Boxes**
+
    - Metrics display for each process step
    - Timeline representation of total lead time
    - Efficiency calculations
@@ -44,6 +47,7 @@ For a value stream map, we'll need to visualize:
 #### Phase 1: Basic Visualization Framework
 
 1. **Set up D3 within Svelte**
+
    - Create a base visualization component
    - Implement the SVG container and zoom behavior
    - Design the coordinate system
@@ -56,6 +60,7 @@ For a value stream map, we'll need to visualize:
 #### Phase 2: Interactive Editing
 
 1. **Event Handling**
+
    - Implement drag behavior for moving elements
    - Add click handlers for selection
    - Create double-click behavior for editing
@@ -68,6 +73,7 @@ For a value stream map, we'll need to visualize:
 #### Phase 3: Data Flow & Reactivity
 
 1. **State Management**
+
    - Design immutable data structures for VSM representation
    - Create pure functions for state transformations
    - Implement Svelte stores for reactive updates
@@ -127,11 +133,13 @@ Connection = {
 ### 5. Advanced Features
 
 1. **Auto Layout**
+
    - Implement force-directed layout for automatic positioning
    - Create alignment tools for manual adjustments
    - Provide templates for common VSM patterns
 
 2. **Analysis Tools**
+
    - Calculate and visualize value-added vs. non-value-added time
    - Implement bottleneck identification
    - Create what-if scenario modeling
@@ -144,16 +152,19 @@ Connection = {
 ### 6. Development Roadmap
 
 1. **Week 1-2: Foundation**
+
    - Set up project structure
    - Implement basic D3 visualization
    - Create core data structures
 
 2. **Week 3-4: Basic Interaction**
+
    - Implement drag-and-drop functionality
    - Create property editors
    - Develop connection management
 
 3. **Week 5-6: Advanced Features**
+
    - Implement metrics calculations
    - Create analysis visualizations
    - Develop export functionality
