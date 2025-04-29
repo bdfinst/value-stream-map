@@ -388,6 +388,7 @@
 		<button
 			class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
 			on:click={createNewProcess}
+			aria-label="Add new process block"
 		>
 			<i class="fas fa-cube"></i>
 			Add Process
@@ -396,6 +397,7 @@
 		<button
 			class="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
 			on:click={createNewConnection}
+			aria-label="Add new connection between processes"
 		>
 			<i class="fas fa-link"></i>
 			Add Connection
@@ -405,6 +407,7 @@
 			<button
 				class="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
 				on:click={removeSelectedItem}
+				aria-label="Remove selected item from the diagram"
 			>
 				<i class="fas fa-trash-alt"></i>
 				Remove Selected
@@ -432,6 +435,7 @@
 					class="flex items-center border-r border-gray-300 bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-100"
 					on:click={() => zoomController.zoomOut?.()}
 					title="Zoom Out"
+					aria-label="Zoom out"
 				>
 					<i class="fas fa-minus text-sm"></i>
 				</button>
@@ -440,6 +444,7 @@
 					class="flex items-center border-r border-gray-300 bg-white px-4 py-1.5 text-gray-700 hover:bg-gray-100"
 					on:click={() => zoomController.zoomFit?.()}
 					title="Fit to Screen"
+					aria-label="Fit diagram to screen"
 				>
 					<i class="fas fa-expand text-sm"></i>
 				</button>
@@ -448,6 +453,7 @@
 					class="flex items-center bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-100"
 					on:click={() => zoomController.zoomIn?.()}
 					title="Zoom In"
+					aria-label="Zoom in"
 				>
 					<i class="fas fa-plus text-sm"></i>
 				</button>
