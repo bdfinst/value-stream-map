@@ -22,7 +22,8 @@ import { createConnectionDragBehavior } from './connectionDrag.js';
  * @param {Function} [params.options.onBlockDrag] - Process block drag handler
  * @param {Function} [params.options.onConnectionClick] - Connection click handler
  * @param {Function} [params.options.onConnectionDrag] - Connection endpoint drag handler
- * @returns {Object} - D3 selection of the rendered SVG
+ * @param {Function} [params.options.onZoomFit] - Callback when zoom fit is requested
+ * @returns {Object} - D3 selection of the rendered SVG and zoom controller
  */
 function renderVSM({
   container,
@@ -37,7 +38,8 @@ function renderVSM({
     onBlockClick = () => {},
     onBlockDrag = null,
     onConnectionClick = null,
-    onConnectionDrag = null
+    onConnectionDrag = null,
+    onZoomFit = null
   } = options;
   
   // Clear the container
@@ -69,6 +71,66 @@ function renderVSM({
   const processesGroup = g.append('g').attr('class', 'processes');
   const labelsGroup = g.append('g').attr('class', 'labels');
   
+  // Function to zoom to fit all elements
+  function zoomToFit(duration = 750) {
+    // Get all processes to calculate the bounds
+    if (vsm.processes.length === 0) return;
+    
+    // Calculate bounds based on process positions and sizes
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    
+    // Consider all processes for bounds calculation
+    vsm.processes.forEach(process => {
+      const x = process.position.x;
+      const y = process.position.y;
+      
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x + blockWidth);
+      maxY = Math.max(maxY, y + blockHeight + 45); // Include metrics box
+    });
+    
+    // Add padding
+    const padding = 50;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
+    
+    // Calculate bounds
+    const dx = maxX - minX;
+    const dy = maxY - minY;
+    const x = minX;
+    const y = minY;
+    
+    // Calculate scale
+    const scale = Math.min(
+      0.9 * width / dx,
+      0.9 * height / dy
+    );
+    
+    // Calculate center position
+    const translate = [
+      width / 2 - scale * (x + dx / 2),
+      height / 2 - scale * (y + dy / 2)
+    ];
+    
+    // Apply zoom transform
+    svg.transition()
+      .duration(duration)
+      .call(
+        zoom.transform,
+        d3.zoomIdentity
+          .translate(translate[0], translate[1])
+          .scale(scale)
+      );
+  }
+  
+  // No internal zoom controls - using external controls only
+  
   // Render connections first (so they appear behind processes)
   renderConnections(connectionsGroup, vsm.connections, vsm.processes, { 
     blockWidth, 
@@ -91,7 +153,16 @@ function renderVSM({
   // Render metrics labels
   renderMetricsLabels(labelsGroup, vsm.processes, { blockWidth, blockHeight });
   
-  return svg;
+  // Automatically zoom to fit when first rendering
+  zoomToFit(0); // No animation on initial render
+  
+  // Return SVG and zoom controller
+  return {
+    svg,
+    zoomFit: () => zoomToFit(),
+    zoomIn: () => svg.call(zoom.scaleBy, 1.3),
+    zoomOut: () => svg.call(zoom.scaleBy, 0.7)
+  };
 }
 
 /**

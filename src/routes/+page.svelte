@@ -8,9 +8,10 @@
   import ConnectionEditor from '$lib/components/ConnectionEditor.svelte';
 
   let container;
-  let renderedSvg;
+  let renderedVSM;
   let vsmStore;
   let storeValue;
+  let zoomController = {};
   
   // Modal state
   let showProcessModal = false;
@@ -114,13 +115,8 @@
   
   // Render the VSM with selection highlighting
   function renderVSMWithSelection(vsm, selection) {
-    // Clean up existing SVG
-    if (renderedSvg) {
-      renderedSvg.remove();
-    }
-    
     // Render the VSM using D3
-    renderedSvg = renderVSM.render({
+    renderedVSM = renderVSM.render({
       container,
       vsm,
       options: {
@@ -133,18 +129,25 @@
       }
     });
     
+    // Store zoom controller functions
+    zoomController = {
+      zoomFit: renderedVSM.zoomFit,
+      zoomIn: renderedVSM.zoomIn,
+      zoomOut: renderedVSM.zoomOut
+    };
+    
     // Highlight selected elements
     if (selection.selectedIds.length > 0) {
       selection.selectedIds.forEach(id => {
         // Find and highlight process blocks
-        renderedSvg.selectAll('.process')
+        renderedVSM.svg.selectAll('.process')
           .filter(d => d.id === id)
           .select('rect')
           .style('stroke', '#3b82f6')
           .style('stroke-width', '3px');
           
         // Find and highlight connections
-        renderedSvg.selectAll('.connection')
+        renderedVSM.svg.selectAll('.connection')
           .filter(d => d.id === id)
           .select('path')
           .style('stroke', '#3b82f6')
@@ -313,8 +316,8 @@
       unsubscribe();
       
       // Clean up D3 elements if needed
-      if (renderedSvg) {
-        renderedSvg.remove();
+      if (renderedVSM && renderedVSM.svg) {
+        renderedVSM.svg.remove();
       }
     };
   });
@@ -362,8 +365,43 @@
     {/if}
   </div>
   
-  <div class="w-full border border-gray-200 rounded-md overflow-hidden mb-8">
-    <div bind:this={container} class="w-full h-[400px]"></div>
+  <div class="mb-8">
+    <div class="w-full border border-gray-200 rounded-md overflow-hidden">
+      <div bind:this={container} class="w-full h-[400px]"></div>
+    </div>
+    
+    <!-- External zoom controls -->
+    <div class="flex justify-end mt-2 gap-1">
+      <div class="flex items-center mr-2">
+        <span class="text-sm text-gray-500 mr-1">Zoom:</span>
+      </div>
+      
+      <div class="border border-gray-300 rounded-md flex">
+        <button 
+          class="px-3 py-1.5 bg-white text-gray-700 hover:bg-gray-100 flex items-center border-r border-gray-300"
+          on:click={() => zoomController.zoomOut?.()}
+          title="Zoom Out"
+        >
+          <i class="fas fa-minus text-sm"></i>
+        </button>
+        
+        <button 
+          class="px-4 py-1.5 bg-white text-gray-700 hover:bg-gray-100 flex items-center border-r border-gray-300"
+          on:click={() => zoomController.zoomFit?.()}
+          title="Fit to Screen"
+        >
+          <i class="fas fa-expand text-sm"></i>
+        </button>
+        
+        <button 
+          class="px-3 py-1.5 bg-white text-gray-700 hover:bg-gray-100 flex items-center"
+          on:click={() => zoomController.zoomIn?.()}
+          title="Zoom In"
+        >
+          <i class="fas fa-plus text-sm"></i>
+        </button>
+      </div>
+    </div>
   </div>
   
   {#if storeValue && storeValue.vsm}
