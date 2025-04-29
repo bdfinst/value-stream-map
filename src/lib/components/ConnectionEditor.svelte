@@ -13,8 +13,6 @@
   // Create local copies of connection data for editing
   let sourceId = connection.sourceId;
   let targetId = connection.targetId;
-  let transferTime = connection.metrics?.transferTime || 0;
-  let batchSize = connection.metrics?.batchSize || 1;
   
   // Form validation
   let errors = {};
@@ -22,11 +20,7 @@
   function validateForm() {
     const connectionData = {
       sourceId,
-      targetId,
-      metrics: {
-        transferTime: Number(transferTime),
-        batchSize: Number(batchSize)
-      }
+      targetId
     };
     
     const result = validateConnection(connectionData);
@@ -42,12 +36,7 @@
     const updatedConnection = {
       ...connection,
       sourceId,
-      targetId,
-      metrics: {
-        ...connection.metrics,
-        transferTime: Number(transferTime),
-        batchSize: Number(batchSize)
-      }
+      targetId
     };
     
     onSave(updatedConnection);
@@ -91,36 +80,6 @@
       </select>
       {#if errors.targetId}
         <p class="mt-1 text-sm text-red-600">{errors.targetId}</p>
-      {/if}
-    </div>
-    
-    <div>
-      <label for="transfer-time" class="block text-sm font-medium text-gray-700 mb-1">Transfer Time</label>
-      <input
-        id="transfer-time"
-        type="number"
-        bind:value={transferTime}
-        min="0"
-        step="0.1"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
-      {#if errors['metrics.transferTime']}
-        <p class="mt-1 text-sm text-red-600">{errors['metrics.transferTime']}</p>
-      {/if}
-    </div>
-    
-    <div>
-      <label for="batch-size" class="block text-sm font-medium text-gray-700 mb-1">Batch Size</label>
-      <input
-        id="batch-size"
-        type="number"
-        bind:value={batchSize}
-        min="1"
-        step="1"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-      />
-      {#if errors['metrics.batchSize']}
-        <p class="mt-1 text-sm text-red-600">{errors['metrics.batchSize']}</p>
       {/if}
     </div>
     

@@ -1,5 +1,5 @@
 /**
- * Validates a connection to ensure it has valid source, target, and metrics
+ * Validates a connection to ensure it has valid source and target
  * @param {Object} connection - The connection to validate
  * @returns {Object} - Validation result with isValid flag and errors object
  */
@@ -16,19 +16,6 @@ function validateConnection(connection) {
     errors.targetId = 'Target process is required';
   } else if (connection.targetId === connection.sourceId) {
     errors.targetId = 'Target must be different from source';
-  }
-  
-  // Validate metrics
-  if (connection.metrics) {
-    // Validate transfer time
-    if (connection.metrics.transferTime < 0) {
-      errors['metrics.transferTime'] = 'Transfer time must be non-negative';
-    }
-    
-    // Validate batch size
-    if (connection.metrics.batchSize <= 0) {
-      errors['metrics.batchSize'] = 'Batch size must be positive';
-    }
   }
   
   return {

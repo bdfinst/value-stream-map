@@ -355,18 +355,6 @@ function renderConnections(group, connections, processes, options) {
     const midX = (sourceX + targetX) / 2;
     const midY = (sourceY + targetY) / 2;
     
-    // Add batch size or flow info if available
-    if (d.metrics && d.metrics.batchSize) {
-      d3.select(this)
-        .append('text')
-        .attr('x', midX)
-        .attr('y', midY - 10)
-        .attr('text-anchor', 'middle')
-        .attr('class', 'connection-metric')
-        .style('font-size', '12px')
-        .text(`Batch: ${d.metrics.batchSize}`);
-    }
-    
     // Add edit button with Font Awesome
     if (onClick) {
       const editButton = d3.select(this)

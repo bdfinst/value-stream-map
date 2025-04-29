@@ -47,17 +47,14 @@ function createVSM({
 }
 
 /**
- * Calculates VSM metrics from processes and connections
+ * Calculates VSM metrics from processes only
  * @param {Array<ProcessBlock>} processes - Process blocks
- * @param {Array<Connection>} connections - Connections
+ * @param {Array<Connection>} connections - Connections (not used for metrics anymore)
  * @returns {VSMMetrics} - Calculated metrics
  */
 function calculateMetrics(processes, connections) {
   const totalLeadTime = processes.reduce(
     (sum, process) => sum + (process.metrics.cycleTime || 0),
-    0
-  ) + connections.reduce(
-    (sum, connection) => sum + (connection.metrics.transferTime || 0),
     0
   );
   

@@ -61,29 +61,25 @@
     const conn1 = connection.create({
       id: 'conn1',
       sourceId: 'process1',
-      targetId: 'process2',
-      metrics: { transferTime: 2, batchSize: 1 }
+      targetId: 'process2'
     });
 
     const conn2 = connection.create({
       id: 'conn2',
       sourceId: 'process2',
-      targetId: 'process3',
-      metrics: { transferTime: 3, batchSize: 1 }
+      targetId: 'process3'
     });
 
     const conn3 = connection.create({
       id: 'conn3',
       sourceId: 'process3',
-      targetId: 'process4',
-      metrics: { transferTime: 2, batchSize: 1 }
+      targetId: 'process4'
     });
 
     const conn4 = connection.create({
       id: 'conn4',
       sourceId: 'process4',
-      targetId: 'process5',
-      metrics: { transferTime: 1, batchSize: 1 }
+      targetId: 'process5'
     });
 
     // Create the VSM with processes and connections
@@ -290,8 +286,7 @@
     const newConnection = connection.create({
       id: newId,
       sourceId: '',
-      targetId: '',
-      metrics: { transferTime: 0, batchSize: 1 }
+      targetId: ''
     });
     
     // Don't add to the store yet, just show the edit dialog
