@@ -22,39 +22,44 @@
 
 	// Create sample VSM data
 	function createSampleVSM() {
+		// Define spacing variables (25% increase from original 200 spacing)
+		const blockSpacing = 250; // Increased from 200
+		const startX = 50;
+		const baseY = 100;
+
 		// Create process blocks
 		const process1 = processBlock.create({
 			id: 'process1',
 			name: 'Customer Request',
-			position: { x: 50, y: 100 },
+			position: { x: startX, y: baseY },
 			metrics: { processTime: 10, completeAccurate: 100 }
 		});
 
 		const process2 = processBlock.create({
 			id: 'process2',
 			name: 'Analysis',
-			position: { x: 250, y: 100 },
+			position: { x: startX + blockSpacing, y: baseY },
 			metrics: { processTime: 30, completeAccurate: 90 }
 		});
 
 		const process3 = processBlock.create({
 			id: 'process3',
 			name: 'Development',
-			position: { x: 450, y: 100 },
+			position: { x: startX + blockSpacing * 2, y: baseY },
 			metrics: { processTime: 60, completeAccurate: 85 }
 		});
 
 		const process4 = processBlock.create({
 			id: 'process4',
 			name: 'Testing',
-			position: { x: 650, y: 100 },
+			position: { x: startX + blockSpacing * 3, y: baseY },
 			metrics: { processTime: 40, completeAccurate: 95 }
 		});
 
 		const process5 = processBlock.create({
 			id: 'process5',
 			name: 'Deployment',
-			position: { x: 850, y: 100 },
+			position: { x: startX + blockSpacing * 4, y: baseY },
 			metrics: { processTime: 20, completeAccurate: 98 }
 		});
 
