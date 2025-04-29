@@ -1,9 +1,13 @@
 <script>
 	import ConnectionEditor from '$lib/components/ConnectionEditor.svelte';
+	import MetricsDisplay from '$lib/components/MetricsDisplay.svelte';
 	import MetricsLegend from '$lib/components/MetricsLegend.svelte';
 	import Modal from '$lib/components/Modal.svelte';
 	import ProcessEditor from '$lib/components/ProcessEditor.svelte';
-	import { connection, createVSM, processBlock, renderVSM } from '$lib/valueStream';
+	import VSMContainer from '$lib/components/VSMContainer.svelte';
+	import VSMToolbar from '$lib/components/VSMToolbar.svelte';
+	import { connection, processBlock, renderVSM } from '$lib/valueStream';
+	import { createSampleVSM } from '$lib/valueStream/sampleVSM.js';
 	import { initVSMStore } from '$lib/valueStream/vsmStore.js';
 	import { onMount } from 'svelte';
 
@@ -19,96 +23,6 @@
 	let showLegendModal = false;
 	let currentProcess = null;
 	let currentConnection = null;
-
-	// Create sample VSM data
-	function createSampleVSM() {
-		// Define spacing variables (25% increase from original 200 spacing)
-		const blockSpacing = 250; // Increased from 200
-		const startX = 50;
-		const baseY = 100;
-
-		// Create process blocks
-		const process1 = processBlock.create({
-			id: 'process1',
-			name: 'Customer Request',
-			position: { x: startX, y: baseY },
-			metrics: { processTime: 10, completeAccurate: 100 }
-		});
-
-		const process2 = processBlock.create({
-			id: 'process2',
-			name: 'Analysis',
-			position: { x: startX + blockSpacing, y: baseY },
-			metrics: { processTime: 30, completeAccurate: 90 }
-		});
-
-		const process3 = processBlock.create({
-			id: 'process3',
-			name: 'Development',
-			position: { x: startX + blockSpacing * 2, y: baseY },
-			metrics: { processTime: 60, completeAccurate: 85 }
-		});
-
-		const process4 = processBlock.create({
-			id: 'process4',
-			name: 'Testing',
-			position: { x: startX + blockSpacing * 3, y: baseY },
-			metrics: { processTime: 40, completeAccurate: 95 }
-		});
-
-		const process5 = processBlock.create({
-			id: 'process5',
-			name: 'Deployment',
-			position: { x: startX + blockSpacing * 4, y: baseY },
-			metrics: { processTime: 20, completeAccurate: 98 }
-		});
-
-		// Create connections between processes with wait times
-		const conn1 = connection.create({
-			id: 'conn1',
-			sourceId: 'process1',
-			targetId: 'process2',
-			metrics: { waitTime: 5 }
-		});
-
-		const conn2 = connection.create({
-			id: 'conn2',
-			sourceId: 'process2',
-			targetId: 'process3',
-			metrics: { waitTime: 15 }
-		});
-
-		const conn3 = connection.create({
-			id: 'conn3',
-			sourceId: 'process3',
-			targetId: 'process4',
-			metrics: { waitTime: 20 }
-		});
-
-		const conn4 = connection.create({
-			id: 'conn4',
-			sourceId: 'process4',
-			targetId: 'process5',
-			metrics: { waitTime: 10 }
-		});
-
-		// Create a rework connection from Testing back to Development
-		const reworkConn = connection.create({
-			id: 'rework1',
-			sourceId: 'process4', // From Testing
-			targetId: 'process3', // Back to Development
-			metrics: { waitTime: 5 },
-			isRework: true // Explicitly mark as rework connection
-		});
-
-		// Create the VSM with processes and connections
-		return createVSM.create({
-			id: 'vsm1',
-			title: 'Software Development Value Stream',
-			processes: [process1, process2, process3, process4, process5],
-			connections: [conn1, conn2, conn3, conn4, reworkConn]
-		});
-	}
 
 	// Initialize the VSM store
 	function initializeStore() {
@@ -181,9 +95,6 @@
 
 		// Update the entire process in the store to ensure position is updated correctly
 		vsmStore.updateProcess(updatedProcess.id, updatedProcess);
-
-		// When the store updates, the rendering will be triggered automatically
-		// and connections will be redrawn correctly through renderVSMWithSelection
 	}
 
 	// Process selection handler
@@ -337,37 +248,19 @@
 	function toggleLegend() {
 		showLegendModal = !showLegendModal;
 	}
+	
+	// Bind container element
+	function bindContainer(el) {
+		container = el;
+	}
 
 	onMount(() => {
 		// Initialize store
 		const unsubscribe = initializeStore();
 
-		// Create a ResizeObserver to handle container resizing
-		const resizeObserver = new ResizeObserver(() => {
-			if (container && storeValue?.vsm) {
-				// Re-render on resize
-				renderVSMWithSelection(storeValue.vsm, storeValue.selection);
-
-				// Fit to screen after a short delay to ensure rendering is complete
-				setTimeout(() => {
-					if (zoomController.zoomFit) {
-						zoomController.zoomFit();
-					}
-				}, 100);
-			}
-		});
-
-		// Start observing the container
-		if (container) {
-			resizeObserver.observe(container);
-		}
-
 		// Return cleanup function
 		return () => {
 			unsubscribe();
-
-			// Stop observing resize events
-			resizeObserver.disconnect();
 
 			// Clean up D3 elements if needed
 			if (renderedVSM && renderedVSM.svg) {
@@ -389,7 +282,7 @@
 
 		<!-- Help button in header -->
 		<button
-			class=" p-2 text-[var(--color-unicorn-white)] transition-colors hover:text-[var(--color-unicorn-white-50)]"
+			class="p-2 text-[var(--color-unicorn-white)] transition-colors hover:text-[var(--color-unicorn-white-50)]"
 			title="Metrics Help"
 			aria-label="View metrics help guide"
 			on:click={toggleLegend}
@@ -398,148 +291,29 @@
 		</button>
 	</div>
 
-	<div class="mb-4 flex space-x-2">
-		<button
-			class="flex items-center gap-2 rounded-md bg-[var(--color-mission-blue)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-mission-blue-65)]"
-			on:click={createNewProcess}
-			aria-label="Add new process block"
-		>
-			<i class="fas fa-cube"></i>
-			Add Process
-		</button>
+	<!-- Toolbar Component -->
+	<VSMToolbar
+		selection={storeValue?.selection}
+		onCreateProcess={createNewProcess}
+		onCreateConnection={createNewConnection}
+		onRemoveSelected={removeSelectedItem}
+	/>
 
-		<button
-			class="flex items-center gap-2 rounded-md bg-[var(--color-mission-blue)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-mission-blue-65)]"
-			on:click={createNewConnection}
-			aria-label="Add new connection between processes"
-		>
-			<i class="fas fa-link"></i>
-			Add Connection
-		</button>
+	<!-- VSM Container Component -->
+	<VSMContainer
+		{zoomController}
+		bindContainer={bindContainer}
+		{storeValue}
+		{renderVSMWithSelection}
+	/>
 
-		{#if storeValue && storeValue.selection.selectedIds.length > 0}
-			<button
-				class="flex items-center gap-2 rounded-md bg-[var(--color-action-red)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-du-dkRed)]"
-				on:click={removeSelectedItem}
-				aria-label="Remove selected item from the diagram"
-			>
-				<i class="fas fa-trash-alt"></i>
-				Remove Selected
-			</button>
-		{/if}
-	</div>
-
-	<div class="mb-8">
-		<div
-			class="w-full overflow-hidden rounded-md border border-[var(--color-tech-cyan)] bg-[var(--color-unicorn-white)] shadow-lg ring-1 ring-[var(--color-tech-cyan-30)]"
-			style="resize: both; min-height: 400px;"
-		>
-			<div bind:this={container} class="h-full w-full" style="min-height: 400px;"></div>
-		</div>
-
-		<!-- External zoom controls -->
-		<div class="mt-2 flex justify-end gap-2">
-			<!-- Zoom controls -->
-			<div class="flex items-center">
-				<span class="mr-1 text-sm text-[var(--color-unicorn-white)]">Zoom:</span>
-			</div>
-
-			<div class="flex rounded-md border border-[var(--color-mission-blue-32)]">
-				<button
-					class="flex items-center border-r border-[var(--color-light-gray)] bg-[var(--color-background-white)] px-3 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
-					on:click={() => zoomController.zoomOut?.()}
-					title="Zoom Out"
-					aria-label="Zoom out"
-				>
-					<i class="fas fa-minus text-sm"></i>
-				</button>
-
-				<button
-					class="flex items-center border-r border-[var(--color-light-gray)] bg-[var(--color-background-white)] px-4 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
-					on:click={() => zoomController.zoomFit?.()}
-					title="Fit to Screen"
-					aria-label="Fit diagram to screen"
-				>
-					<i class="fas fa-expand text-sm"></i>
-				</button>
-
-				<button
-					class="flex items-center bg-[var(--color-background-white)] px-3 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
-					on:click={() => zoomController.zoomIn?.()}
-					title="Zoom In"
-					aria-label="Zoom in"
-				>
-					<i class="fas fa-plus text-sm"></i>
-				</button>
-			</div>
-		</div>
-	</div>
-
+	<!-- Metrics Display Component -->
 	{#if storeValue && storeValue.vsm}
-		<div class="mt-8">
-			<!-- Best case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">Primary Flow</h3>
-			<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div
-					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Lead Time</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
-						{storeValue.vsm.metrics.totalLeadTime}
-					</p>
-				</div>
-				<div
-					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Value-Added Time</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
-						{storeValue.vsm.metrics.totalValueAddedTime}
-					</p>
-				</div>
-				<div
-					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Value-Added Ratio</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
-						{(storeValue.vsm.metrics.valueAddedRatio * 100).toFixed(1)}%
-					</p>
-				</div>
-			</div>
-
-			<!-- Worst case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">Exception Flow</h3>
-			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div
-					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Exception Lead Time</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
-						{storeValue.vsm.metrics.worstCaseLeadTime || storeValue.vsm.metrics.totalLeadTime}
-					</p>
-				</div>
-				<div
-					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Total Rework Time</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
-						{storeValue.vsm.metrics.totalReworkTime || 0}
-					</p>
-				</div>
-				<div
-					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
-				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Rework Impact</h3>
-					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
-						{storeValue.vsm.metrics.totalReworkTime
-							? `+${((storeValue.vsm.metrics.totalReworkTime / storeValue.vsm.metrics.totalLeadTime) * 100).toFixed(1)}%`
-							: '0%'}
-					</p>
-				</div>
-			</div>
-		</div>
+		<MetricsDisplay vsm={storeValue.vsm} />
 	{/if}
 </main>
 
+<!-- Modals -->
 <Modal show={showProcessModal} title="Edit Process" onClose={cancelEditing}>
 	{#if currentProcess}
 		<ProcessEditor process={currentProcess} onSave={handleProcessUpdate} onCancel={cancelEditing} />
