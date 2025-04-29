@@ -369,13 +369,15 @@
 	<title>Value Stream Map</title>
 </svelte:head>
 
-<main class="mx-auto max-w-7xl p-4">
-	<div class="mb-4 flex items-center justify-between">
-		<h1 class="text-3xl text-gray-800">Value Stream Map</h1>
+<main class="mx-auto my-4 max-w-7xl rounded-lg bg-[var(--color-hero-navy)] p-4 shadow-xl">
+	<div class="mb-4 flex items-center justify-between rounded-md bg-[var(--color-hero-navy)] p-4">
+		<div class="flex-grow text-center">
+			<h1 class="text-3xl text-[var(--color-unicorn-white)]">Value Stream Map</h1>
+		</div>
 
 		<!-- Help button in header -->
 		<button
-			class="rounded-full p-2 text-gray-500 transition-colors hover:bg-blue-50 hover:text-blue-600"
+			class=" p-2 text-[var(--color-unicorn-white)] transition-colors hover:text-[var(--color-unicorn-white-50)]"
 			title="Metrics Help"
 			aria-label="View metrics help guide"
 			on:click={toggleLegend}
@@ -386,7 +388,7 @@
 
 	<div class="mb-4 flex space-x-2">
 		<button
-			class="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+			class="flex items-center gap-2 rounded-md bg-[var(--color-mission-blue)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-mission-blue-65)]"
 			on:click={createNewProcess}
 			aria-label="Add new process block"
 		>
@@ -395,7 +397,7 @@
 		</button>
 
 		<button
-			class="flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+			class="flex items-center gap-2 rounded-md bg-[var(--color-mission-blue)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-mission-blue-65)]"
 			on:click={createNewConnection}
 			aria-label="Add new connection between processes"
 		>
@@ -405,7 +407,7 @@
 
 		{#if storeValue && storeValue.selection.selectedIds.length > 0}
 			<button
-				class="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+				class="flex items-center gap-2 rounded-md bg-[var(--color-action-red)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-du-dkRed)]"
 				on:click={removeSelectedItem}
 				aria-label="Remove selected item from the diagram"
 			>
@@ -417,7 +419,7 @@
 
 	<div class="mb-8">
 		<div
-			class="w-full overflow-hidden rounded-md border border-gray-200"
+			class="w-full overflow-hidden rounded-md border border-[var(--color-tech-cyan)] bg-[var(--color-unicorn-white)] shadow-lg ring-1 ring-[var(--color-tech-cyan-30)]"
 			style="resize: both; min-height: 400px;"
 		>
 			<div bind:this={container} class="h-full w-full" style="min-height: 400px;"></div>
@@ -427,12 +429,12 @@
 		<div class="mt-2 flex justify-end gap-2">
 			<!-- Zoom controls -->
 			<div class="flex items-center">
-				<span class="mr-1 text-sm text-gray-500">Zoom:</span>
+				<span class="mr-1 text-sm text-[var(--color-unicorn-white)]">Zoom:</span>
 			</div>
 
-			<div class="flex rounded-md border border-gray-300">
+			<div class="flex rounded-md border border-[var(--color-mission-blue-32)]">
 				<button
-					class="flex items-center border-r border-gray-300 bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-100"
+					class="flex items-center border-r border-[var(--color-light-gray)] bg-[var(--color-background-white)] px-3 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
 					on:click={() => zoomController.zoomOut?.()}
 					title="Zoom Out"
 					aria-label="Zoom out"
@@ -441,7 +443,7 @@
 				</button>
 
 				<button
-					class="flex items-center border-r border-gray-300 bg-white px-4 py-1.5 text-gray-700 hover:bg-gray-100"
+					class="flex items-center border-r border-[var(--color-light-gray)] bg-[var(--color-background-white)] px-4 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
 					on:click={() => zoomController.zoomFit?.()}
 					title="Fit to Screen"
 					aria-label="Fit diagram to screen"
@@ -450,7 +452,7 @@
 				</button>
 
 				<button
-					class="flex items-center bg-white px-3 py-1.5 text-gray-700 hover:bg-gray-100"
+					class="flex items-center bg-[var(--color-background-white)] px-3 py-1.5 text-[var(--color-mission-blue)] hover:bg-[var(--color-light-gray)]"
 					on:click={() => zoomController.zoomIn?.()}
 					title="Zoom In"
 					aria-label="Zoom in"
@@ -464,40 +466,62 @@
 	{#if storeValue && storeValue.vsm}
 		<div class="mt-8">
 			<!-- Best case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-gray-600">Best Case (No Rework)</h3>
+			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">
+				Best Case (No Rework)
+			</h3>
 			<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div class="rounded-md bg-gray-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Best Case Lead Time</h3>
-					<p class="mt-2 text-2xl font-bold">{storeValue.vsm.metrics.totalLeadTime}</p>
+				<div
+					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Best Case Lead Time</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
+						{storeValue.vsm.metrics.totalLeadTime}
+					</p>
 				</div>
-				<div class="rounded-md bg-gray-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Value-Added Time</h3>
-					<p class="mt-2 text-2xl font-bold">{storeValue.vsm.metrics.totalValueAddedTime}</p>
+				<div
+					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Value-Added Time</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
+						{storeValue.vsm.metrics.totalValueAddedTime}
+					</p>
 				</div>
-				<div class="rounded-md bg-gray-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Value-Added Ratio</h3>
-					<p class="mt-2 text-2xl font-bold">
+				<div
+					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Value-Added Ratio</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
 						{(storeValue.vsm.metrics.valueAddedRatio * 100).toFixed(1)}%
 					</p>
 				</div>
 			</div>
 
 			<!-- Worst case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-gray-600">Worst Case (With Rework)</h3>
+			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">
+				Worst Case (With Rework)
+			</h3>
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-				<div class="rounded-md bg-red-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Worst Case Lead Time</h3>
-					<p class="mt-2 text-2xl font-bold">
+				<div
+					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Worst Case Lead Time</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
 						{storeValue.vsm.metrics.worstCaseLeadTime || storeValue.vsm.metrics.totalLeadTime}
 					</p>
 				</div>
-				<div class="rounded-md bg-red-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Total Rework Time</h3>
-					<p class="mt-2 text-2xl font-bold">{storeValue.vsm.metrics.totalReworkTime || 0}</p>
+				<div
+					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Total Rework Time</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
+						{storeValue.vsm.metrics.totalReworkTime || 0}
+					</p>
 				</div>
-				<div class="rounded-md bg-red-50 p-4 text-center">
-					<h3 class="text-sm font-medium text-gray-500">Rework Impact</h3>
-					<p class="mt-2 text-2xl font-bold">
+				<div
+					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
+				>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Rework Impact</h3>
+					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
 						{storeValue.vsm.metrics.totalReworkTime
 							? `+${((storeValue.vsm.metrics.totalReworkTime / storeValue.vsm.metrics.totalLeadTime) * 100).toFixed(1)}%`
 							: '0%'}

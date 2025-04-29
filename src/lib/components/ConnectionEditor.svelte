@@ -14,6 +14,7 @@
   let sourceId = connection.sourceId;
   let targetId = connection.targetId;
   let waitTime = connection.metrics?.waitTime || 0;
+  let isRework = connection.isRework || false;
   
   // Form validation
   let errors = {};
@@ -46,6 +47,7 @@
       ...connection,
       sourceId,
       targetId,
+      isRework,
       metrics: {
         ...(connection.metrics || {}),
         waitTime: Number(waitTime)
@@ -61,11 +63,11 @@
   
   <form on:submit|preventDefault={handleSubmit} class="space-y-4">
     <div>
-      <label for="source-process" class="block text-sm font-medium text-gray-700 mb-1">Source Process</label>
+      <label for="source-process" class="block text-sm font-medium text-[var(--color-defense-dark)] mb-1">Source Process</label>
       <select 
         id="source-process"
         bind:value={sourceId}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-3 py-2 border border-[var(--color-light-gray)] rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-mission-blue)] focus:border-[var(--color-mission-blue)]"
       >
         <option value="">Select a source process</option>
         {#each processes as process}
@@ -78,11 +80,11 @@
     </div>
     
     <div>
-      <label for="target-process" class="block text-sm font-medium text-gray-700 mb-1">Target Process</label>
+      <label for="target-process" class="block text-sm font-medium text-[var(--color-defense-dark)] mb-1">Target Process</label>
       <select 
         id="target-process"
         bind:value={targetId}
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-3 py-2 border border-[var(--color-light-gray)] rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-mission-blue)] focus:border-[var(--color-mission-blue)]"
       >
         <option value="">Select a target process</option>
         {#each processes as process}
@@ -97,17 +99,29 @@
     </div>
     
     <div>
-      <label for="wait-time" class="block text-sm font-medium text-gray-700 mb-1">Wait Time</label>
+      <label for="wait-time" class="block text-sm font-medium text-[var(--color-defense-dark)] mb-1">Wait Time</label>
       <input 
         type="number"
         id="wait-time"
         bind:value={waitTime}
         min="0"
-        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+        class="w-full px-3 py-2 border border-[var(--color-light-gray)] rounded-md shadow-sm focus:outline-none focus:ring-[var(--color-mission-blue)] focus:border-[var(--color-mission-blue)]"
       />
       {#if errors['metrics.waitTime']}
         <p class="mt-1 text-sm text-red-600">{errors['metrics.waitTime']}</p>
       {/if}
+    </div>
+    
+    <div class="flex items-center">
+      <input 
+        type="checkbox" 
+        id="is-rework" 
+        bind:checked={isRework}
+        class="h-4 w-4 text-[var(--color-action-red)] focus:ring-[var(--color-action-red)] border-[var(--color-light-gray)] rounded"
+      />
+      <label for="is-rework" class="ml-2 block text-sm text-[var(--color-defense-dark)]">
+        This is a rework connection
+      </label>
     </div>
     
     <div class="flex justify-end space-x-2">
@@ -115,14 +129,14 @@
         type="button"
         on:click={onCancel}
         aria-label="Cancel connection editing"
-        class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="px-4 py-2 border border-[var(--color-light-gray)] rounded-md shadow-sm text-sm font-medium text-[var(--color-defense-dark)] bg-[var(--color-unicorn-white)] hover:bg-[var(--color-background-white)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-mission-blue)]"
       >
         Cancel
       </button>
       <button
         type="submit"
         aria-label="Save connection changes"
-        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-[var(--color-unicorn-white)] bg-[var(--color-mission-blue)] hover:bg-[var(--color-mission-blue-65)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--color-mission-blue)]"
       >
         Save
       </button>

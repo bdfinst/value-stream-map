@@ -80,16 +80,16 @@
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 </script>
 
-<div class="metrics-legend bg-white p-5 rounded-md max-w-3xl mx-auto">
+<div class="metrics-legend bg-[var(--color-unicorn-white)] border border-[var(--color-light-gray)] p-5 rounded-md max-w-3xl mx-auto">
   <div class="mb-5">
-    <p class="text-sm text-gray-600 mb-2">
+    <p class="text-sm text-[var(--color-mission-blue)] mb-2">
       This guide explains all the metrics and visual elements used in the Value Stream Map. Hover over any item for a detailed description.
     </p>
   </div>
   
   <div class="grid sm:grid-cols-2 gap-6">
-    <div class="bg-gray-50 p-4 rounded-md">
-      <h4 class="text-sm font-medium text-gray-700 mb-3">Process & Connection Metrics</h4>
+    <div class="bg-[var(--color-background-white)] border border-[var(--color-light-gray)] p-4 rounded-md">
+      <h4 class="text-sm font-medium text-[var(--color-defense-dark)] mb-3">Process & Connection Metrics</h4>
       <ul class="space-y-3">
         {#each metrics as metric}
           <li class="flex items-center group relative border-b border-gray-100 pb-2">
@@ -100,7 +100,7 @@
             
             <!-- Info icon with tooltip -->
             <div class="relative ml-auto inline-block">
-              <button class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label={`Information about ${metric.name}`}>
+              <button class="text-[var(--color-tech-cyan)] hover:text-[var(--color-mission-blue)] focus:outline-none" aria-label={`Information about ${metric.name}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
@@ -119,8 +119,8 @@
       </ul>
     </div>
     
-    <div class="bg-gray-50 p-4 rounded-md">
-      <h4 class="text-sm font-medium text-gray-700 mb-3">Value Stream Metrics</h4>
+    <div class="bg-[var(--color-background-white)] border border-[var(--color-light-gray)] p-4 rounded-md">
+      <h4 class="text-sm font-medium text-[var(--color-defense-dark)] mb-3">Value Stream Metrics</h4>
       <ul class="space-y-3">
         {#each vsmMetrics as metric}
           <li class="flex items-center group relative border-b border-gray-100 pb-2">
@@ -128,7 +128,7 @@
             
             <!-- Info icon with tooltip -->
             <div class="relative ml-auto inline-block">
-              <button class="text-gray-400 hover:text-gray-600 focus:outline-none" aria-label={`Information about ${metric.name}`}>
+              <button class="text-[var(--color-tech-cyan)] hover:text-[var(--color-mission-blue)] focus:outline-none" aria-label={`Information about ${metric.name}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
                 </svg>
@@ -148,8 +148,8 @@
     </div>
   </div>
   
-  <div class="mt-6 bg-gray-50 p-4 rounded-md">
-    <h4 class="text-sm font-medium text-gray-700 mb-3">Visual Elements</h4>
+  <div class="mt-6 bg-[var(--color-background-white)] border border-[var(--color-light-gray)] p-4 rounded-md">
+    <h4 class="text-sm font-medium text-[var(--color-defense-dark)] mb-3">Visual Elements</h4>
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
       <div class="flex items-center group relative">
         <div class="w-8 h-2 bg-gray-500 rounded-sm mr-2"></div>

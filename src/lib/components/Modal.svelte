@@ -21,20 +21,20 @@
 
 {#if show}
   <div 
-    class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50"
+    class="fixed inset-0 bg-[var(--color-hero-navy-40)] flex items-center justify-center z-50"
     on:click={handleBackdropClick}
   >
     <div 
-      class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
+      class="bg-[var(--color-unicorn-white)] rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div class="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-        <h3 id="modal-title" class="text-lg font-medium text-gray-900">{title}</h3>
+      <div class="px-4 py-3 border-b border-[var(--color-light-gray)] bg-[var(--color-defense-dark)] flex justify-between items-center">
+        <h3 id="modal-title" class="text-lg font-medium text-[var(--color-unicorn-white)]">{title}</h3>
         <button 
           type="button" 
-          class="text-gray-400 hover:text-gray-500 focus:outline-none"
+          class="text-[var(--color-unicorn-white)] hover:text-[var(--color-tech-cyan)] focus:outline-none"
           aria-label="Close"
           on:click={onClose}
         >
