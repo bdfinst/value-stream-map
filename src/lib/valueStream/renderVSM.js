@@ -1,4 +1,5 @@
 import * as d3 from 'd3';
+import { createProcessDragBehavior } from './draggable.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock
@@ -17,6 +18,7 @@ import * as d3 from 'd3';
  * @param {number} [params.options.blockWidth=120] - Process block width
  * @param {number} [params.options.blockHeight=80] - Process block height
  * @param {Function} [params.options.onBlockClick] - Process block click handler
+ * @param {Function} [params.options.onBlockDrag] - Process block drag handler
  * @returns {Object} - D3 selection of the rendered SVG
  */
 function renderVSM({
@@ -29,7 +31,8 @@ function renderVSM({
     height = 600,
     blockWidth = 120,
     blockHeight = 80,
-    onBlockClick = () => {}
+    onBlockClick = () => {},
+    onBlockDrag = null
   } = options;
   
   // Clear the container
@@ -68,7 +71,8 @@ function renderVSM({
   renderProcessBlocks(processesGroup, vsm.processes, { 
     blockWidth, 
     blockHeight,
-    onClick: onBlockClick
+    onClick: onBlockClick,
+    onDragEnd: onBlockDrag
   });
   
   // Render metrics labels
@@ -84,7 +88,7 @@ function renderVSM({
  * @param {Object} options - Rendering options
  */
 function renderProcessBlocks(group, processes, options) {
-  const { blockWidth, blockHeight, onClick } = options;
+  const { blockWidth, blockHeight, onClick, onDragEnd } = options;
   
   // Create process block groups
   const processGroups = group.selectAll('.process')
@@ -93,8 +97,12 @@ function renderProcessBlocks(group, processes, options) {
     .append('g')
     .attr('class', 'process')
     .attr('transform', d => `translate(${d.position.x}, ${d.position.y})`)
-    .style('cursor', 'pointer')
-    .on('click', (event, d) => onClick(d));
+    .style('cursor', 'grab');
+  
+  // Apply drag behavior if provided
+  if (onDragEnd) {
+    processGroups.call(createProcessDragBehavior(d3, onDragEnd));
+  }
   
   // Add process rectangles
   processGroups.append('rect')
@@ -105,7 +113,11 @@ function renderProcessBlocks(group, processes, options) {
     .attr('class', 'process-block')
     .style('fill', '#f0f0f0')
     .style('stroke', '#333')
-    .style('stroke-width', 2);
+    .style('stroke-width', 2)
+    .on('click', (event, d) => {
+      // Toggle selection on block click
+      onClick(d);
+    });
   
   // Add process names
   processGroups.append('text')
@@ -117,6 +129,33 @@ function renderProcessBlocks(group, processes, options) {
     .style('font-weight', 'bold')
     .style('font-size', '14px')
     .text(d => d.name);
+  
+  // Add edit button
+  const editGroup = processGroups.append('g')
+    .attr('class', 'edit-button')
+    .attr('transform', `translate(${blockWidth - 22}, 4)`)
+    .style('cursor', 'pointer')
+    .on('click', (event, d) => {
+      event.stopPropagation(); // Prevent triggering block click
+      const editEvent = new CustomEvent('edit', { detail: d });
+      options.onClick(d, 'edit');
+    });
+  
+  // Edit button background
+  editGroup.append('rect')
+    .attr('width', 18)
+    .attr('height', 18)
+    .attr('rx', 3)
+    .attr('ry', 3)
+    .style('fill', '#e0e0e0')
+    .style('stroke', '#ccc')
+    .style('stroke-width', 1);
+  
+  // Edit icon (pencil)
+  editGroup.append('path')
+    .attr('d', 'M3,12 L3,15 L6,15 L13,8 L10,5 L3,12 Z M14,7 L11,4 L12.5,2.5 L15.5,5.5 L14,7 Z')
+    .attr('transform', 'translate(2, 2) scale(0.8)')
+    .style('fill', '#666');
 }
 
 /**

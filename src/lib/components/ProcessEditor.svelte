@@ -1,0 +1,144 @@
+<script>
+  /** @type {import('../valueStream/processBlock').ProcessBlock} */
+  export let process;
+  /** @type {Function} */
+  export let onSave;
+  /** @type {Function} */
+  export let onCancel;
+  
+  // Create local copies of process data for editing
+  let name = process.name;
+  let description = process.description || '';
+  let processTime = process.metrics?.processTime || 0;
+  let waitTime = process.metrics?.waitTime || 0;
+  
+  // Form validation
+  let errors = {
+    name: '',
+    processTime: '',
+    waitTime: ''
+  };
+  
+  function validateForm() {
+    let isValid = true;
+    
+    // Validate name
+    if (!name.trim()) {
+      errors.name = 'Name is required';
+      isValid = false;
+    } else {
+      errors.name = '';
+    }
+    
+    // Validate process time
+    if (isNaN(processTime) || processTime < 0) {
+      errors.processTime = 'Must be a non-negative number';
+      isValid = false;
+    } else {
+      errors.processTime = '';
+    }
+    
+    // Validate wait time
+    if (isNaN(waitTime) || waitTime < 0) {
+      errors.waitTime = 'Must be a non-negative number';
+      isValid = false;
+    } else {
+      errors.waitTime = '';
+    }
+    
+    return isValid;
+  }
+  
+  function handleSubmit() {
+    if (!validateForm()) return;
+    
+    // Create updated process object
+    const updatedProcess = {
+      ...process,
+      name,
+      description,
+      metrics: {
+        ...process.metrics,
+        processTime: Number(processTime),
+        waitTime: Number(waitTime)
+      }
+    };
+    
+    onSave(updatedProcess);
+  }
+</script>
+
+<div class="p-4 bg-white rounded-lg shadow">
+  <h2 class="text-xl font-bold mb-4">Edit Process</h2>
+  
+  <form on:submit|preventDefault={handleSubmit} class="space-y-4">
+    <div>
+      <label for="process-name" class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+      <input
+        id="process-name"
+        type="text"
+        bind:value={name}
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+      {#if errors.name}
+        <p class="mt-1 text-sm text-red-600">{errors.name}</p>
+      {/if}
+    </div>
+    
+    <div>
+      <label for="process-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+      <textarea
+        id="process-description"
+        bind:value={description}
+        rows="2"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      ></textarea>
+    </div>
+    
+    <div>
+      <label for="process-time" class="block text-sm font-medium text-gray-700 mb-1">Process Time</label>
+      <input
+        id="process-time"
+        type="number"
+        bind:value={processTime}
+        min="0"
+        step="0.1"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+      {#if errors.processTime}
+        <p class="mt-1 text-sm text-red-600">{errors.processTime}</p>
+      {/if}
+    </div>
+    
+    <div>
+      <label for="wait-time" class="block text-sm font-medium text-gray-700 mb-1">Wait Time</label>
+      <input
+        id="wait-time"
+        type="number"
+        bind:value={waitTime}
+        min="0"
+        step="0.1"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+      {#if errors.waitTime}
+        <p class="mt-1 text-sm text-red-600">{errors.waitTime}</p>
+      {/if}
+    </div>
+    
+    <div class="flex justify-end space-x-2">
+      <button
+        type="button"
+        on:click={onCancel}
+        class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        Cancel
+      </button>
+      <button
+        type="submit"
+        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+      >
+        Save
+      </button>
+    </div>
+  </form>
+</div>
