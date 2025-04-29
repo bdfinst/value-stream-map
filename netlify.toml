@@ -1,0 +1,32 @@
+[build]
+	command = "npm run build"
+	publish = "build"
+
+[context.production]
+	command = "npm run build:production"
+	publish = "build"
+
+	[context.production.environment]
+		PUBLIC_VITE_COMPONENT_DEMO = "0"
+		PUBLIC_VITE_V2             = "0"
+		VITE_ALLOW_DRAFT_BLOGS     = "0"
+
+[context.branch-deploy]
+	SITE_URL = "https://staging.defenseunicorns.com"
+	command  = "npm run build:staging"
+	publish  = "build"
+
+	[context.branch-deploy.environment]
+		PUBLIC_VITE_COMPONENT_DEMO = "1"
+		PUBLIC_VITE_V2             = "1"
+		VITE_ALLOW_DRAFT_BLOGS     = "1"
+
+[context.deploy-preview]
+	SITE_URL = "https://dev.defenseunicorns.com"
+	command  = "npm run build:staging"
+	publish  = "build"
+
+	[context.deploy-preview.environment]
+		PUBLIC_VITE_COMPONENT_DEMO = "1"
+		PUBLIC_VITE_V2             = "1"
+		VITE_ALLOW_DRAFT_BLOGS     = "1"
