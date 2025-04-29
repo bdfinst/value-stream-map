@@ -1,8 +1,12 @@
+// External imports
 import * as d3 from 'd3';
 
+// Internal imports
+import { formatDecimal } from '../utils/formatters.js';
+
+// Relative imports
 import { createConnectionDragBehavior } from './connectionDrag.js';
 import { createProcessDragBehavior } from './draggable.js';
-import { formatDecimal } from '../utils/formatters.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock

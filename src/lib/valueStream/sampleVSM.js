@@ -1,10 +1,11 @@
+// Internal imports
 import { connection, createVSM, processBlock } from '$lib/valueStream';
 
 /**
  * Creates a sample value stream map with predefined processes and connections
  * @returns {Object} A sample VSM object
  */
-export function createSampleVSM() {
+export const createSampleVSM = () => {
 	// Define spacing variables (25% increase from original 200 spacing)
 	const blockSpacing = 250; // Increased from 200
 	const startX = 50;
@@ -91,4 +92,4 @@ export function createSampleVSM() {
 		processes: [process1, process2, process3, process4, process5],
 		connections: [conn1, conn2, conn3, conn4, reworkConn]
 	});
-}
+};

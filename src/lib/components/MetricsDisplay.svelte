@@ -1,6 +1,11 @@
 <script>
-	import MetricCard from './MetricCard.svelte';
+	// Internal imports
 	import { formatDecimal } from '$lib/utils/formatters.js';
+
+	// Relative imports
+	import MetricCard from './MetricCard.svelte';
+
+	// Props
 	export let vsm;
 </script>
 

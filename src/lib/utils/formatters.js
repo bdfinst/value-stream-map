@@ -5,7 +5,7 @@
  * @param {number} value - The numeric value to format
  * @returns {string} The formatted value as a string
  */
-export function formatDecimal(value) {
+export const formatDecimal = (value) => {
 	if (value === undefined || value === null) return '0';
 
 	// First round to 1 decimal place
@@ -18,4 +18,4 @@ export function formatDecimal(value) {
 
 	// Otherwise, display with 1 decimal place
 	return rounded.toFixed(1);
-}
+};
