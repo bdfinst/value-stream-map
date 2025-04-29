@@ -248,7 +248,7 @@
 	function toggleLegend() {
 		showLegendModal = !showLegendModal;
 	}
-	
+
 	// Bind container element
 	function bindContainer(el) {
 		container = el;
@@ -300,12 +300,7 @@
 	/>
 
 	<!-- VSM Container Component -->
-	<VSMContainer
-		{zoomController}
-		bindContainer={bindContainer}
-		{storeValue}
-		{renderVSMWithSelection}
-	/>
+	<VSMContainer {zoomController} {bindContainer} {storeValue} {renderVSMWithSelection} />
 
 	<!-- Metrics Display Component -->
 	{#if storeValue && storeValue.vsm}

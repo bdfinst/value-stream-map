@@ -1,0 +1,7 @@
+# Check if .svelte-kit directory exists
+if [ ! -d "../.svelte-kit" ]; then
+    echo "🛠️  Running npm build..."
+    npm run build
+fi
+
+npx lint-staged && npm run test:sv && npm run test
