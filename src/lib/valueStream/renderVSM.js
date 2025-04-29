@@ -1,5 +1,6 @@
 import * as d3 from 'd3';
 import { createProcessDragBehavior } from './draggable.js';
+import { createConnectionDragBehavior } from './connectionDrag.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock
@@ -19,6 +20,8 @@ import { createProcessDragBehavior } from './draggable.js';
  * @param {number} [params.options.blockHeight=80] - Process block height
  * @param {Function} [params.options.onBlockClick] - Process block click handler
  * @param {Function} [params.options.onBlockDrag] - Process block drag handler
+ * @param {Function} [params.options.onConnectionClick] - Connection click handler
+ * @param {Function} [params.options.onConnectionDrag] - Connection endpoint drag handler
  * @returns {Object} - D3 selection of the rendered SVG
  */
 function renderVSM({
@@ -32,7 +35,9 @@ function renderVSM({
     blockWidth = 120,
     blockHeight = 80,
     onBlockClick = () => {},
-    onBlockDrag = null
+    onBlockDrag = null,
+    onConnectionClick = null,
+    onConnectionDrag = null
   } = options;
   
   // Clear the container
@@ -65,7 +70,13 @@ function renderVSM({
   const labelsGroup = g.append('g').attr('class', 'labels');
   
   // Render connections first (so they appear behind processes)
-  renderConnections(connectionsGroup, vsm.connections, vsm.processes, { blockWidth, blockHeight });
+  renderConnections(connectionsGroup, vsm.connections, vsm.processes, { 
+    blockWidth, 
+    blockHeight,
+    onClick: onConnectionClick,
+    onDragEnd: onConnectionDrag,
+    processes: vsm.processes
+  });
   
   // Render process blocks
   renderProcessBlocks(processesGroup, vsm.processes, { 
@@ -96,12 +107,13 @@ function renderProcessBlocks(group, processes, options) {
     .enter()
     .append('g')
     .attr('class', 'process')
+    .attr('data-id', d => d.id) // Add data-id attribute for selection by ID
     .attr('transform', d => `translate(${d.position.x}, ${d.position.y})`)
     .style('cursor', 'grab');
   
   // Apply drag behavior if provided
   if (onDragEnd) {
-    processGroups.call(createProcessDragBehavior(d3, onDragEnd));
+    processGroups.call(createProcessDragBehavior(d3, onDragEnd, blockHeight));
   }
   
   // Add process rectangles
@@ -166,7 +178,7 @@ function renderProcessBlocks(group, processes, options) {
  * @param {Object} options - Rendering options
  */
 function renderConnections(group, connections, processes, options) {
-  const { blockWidth, blockHeight } = options;
+  const { blockWidth, blockHeight, onClick, onDragEnd, processes: allProcesses } = options;
   
   // Create a lookup map for processes by ID
   const processMap = processes.reduce((map, process) => {
@@ -195,51 +207,116 @@ function renderConnections(group, connections, processes, options) {
     .curve(d3.curveBasis);
   
   // Create connection paths
-  group.selectAll('.connection')
+  const connectionGroups = group.selectAll('.connection')
     .data(connections, d => d.id)
     .enter()
     .append('g')
     .attr('class', 'connection')
-    .each(function(d) {
-      const points = getConnectionPoints(d);
-      if (!points) return;
+    .style('cursor', onClick ? 'pointer' : 'default');
+  
+  if (onClick) {
+    connectionGroups.on('click', (event, d) => onClick(d));
+  }
+  
+  connectionGroups.each(function(d) {
+    const points = getConnectionPoints(d);
+    if (!points) return;
+    
+    const { sourceX, sourceY, targetX, targetY } = points;
+    
+    // Default control points if no custom path
+    const pathPoints = d.path && d.path.length > 0 
+      ? d.path
+      : [
+          [sourceX, sourceY],
+          [sourceX + (targetX - sourceX) / 2, sourceY],
+          [targetX - (targetX - sourceX) / 2, targetY],
+          [targetX, targetY]
+        ];
+    
+    // Render connection path
+    d3.select(this)
+      .append('path')
+      .attr('d', lineGenerator(pathPoints))
+      .attr('fill', 'none')
+      .attr('stroke', '#555')
+      .attr('stroke-width', 2)
+      .attr('marker-end', 'url(#arrow)');
       
-      const { sourceX, sourceY, targetX, targetY } = points;
+    // Add draggable endpoint if drag handler is provided
+    if (onDragEnd) {
+      // Add a draggable endpoint at the target end of the path
+      const endpointGroup = d3.select(this)
+        .append('g')
+        .attr('class', 'endpoint-group')
+        // Don't set transform, so that the endpoint position is relative to connection group
       
-      // Default control points if no custom path
-      const pathPoints = d.path && d.path.length > 0 
-        ? d.path
-        : [
-            [sourceX, sourceY],
-            [sourceX + (targetX - sourceX) / 2, sourceY],
-            [targetX - (targetX - sourceX) / 2, targetY],
-            [targetX, targetY]
-          ];
+      // Add the draggable endpoint circle
+      endpointGroup.append('circle')
+        .attr('class', 'endpoint')
+        .attr('cx', targetX)
+        .attr('cy', targetY)
+        .attr('r', 6)
+        .style('fill', '#4CAF50')
+        .style('stroke', '#fff')
+        .style('stroke-width', 2)
+        .style('cursor', 'move');
       
-      // Render connection path
+      // Apply drag behavior
+      endpointGroup.call(
+        createConnectionDragBehavior(
+          d3, 
+          allProcesses, 
+          blockWidth, 
+          blockHeight, 
+          onDragEnd
+        )
+      );
+    }
+    
+    // Calculate the midpoint for adding controls/labels
+    const midX = (sourceX + targetX) / 2;
+    const midY = (sourceY + targetY) / 2;
+    
+    // Add batch size or flow info if available
+    if (d.metrics && d.metrics.batchSize) {
       d3.select(this)
-        .append('path')
-        .attr('d', lineGenerator(pathPoints))
-        .attr('fill', 'none')
-        .attr('stroke', '#555')
-        .attr('stroke-width', 2)
-        .attr('marker-end', 'url(#arrow)');
+        .append('text')
+        .attr('x', midX)
+        .attr('y', midY - 10)
+        .attr('text-anchor', 'middle')
+        .attr('class', 'connection-metric')
+        .style('font-size', '12px')
+        .text(`Batch: ${d.metrics.batchSize}`);
+    }
+    
+    // Add edit button
+    if (onClick) {
+      const editButton = d3.select(this)
+        .append('g')
+        .attr('class', 'connection-edit')
+        .attr('transform', `translate(${midX - 10}, ${midY + 10})`)
+        .style('cursor', 'pointer')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          onClick(d, 'edit');
+        });
       
-      // Add batch size or flow info if available
-      if (d.metrics && d.metrics.batchSize) {
-        const midX = (sourceX + targetX) / 2;
-        const midY = (sourceY + targetY) / 2;
-        
-        d3.select(this)
-          .append('text')
-          .attr('x', midX)
-          .attr('y', midY - 10)
-          .attr('text-anchor', 'middle')
-          .attr('class', 'connection-metric')
-          .style('font-size', '12px')
-          .text(`Batch: ${d.metrics.batchSize}`);
-      }
-    });
+      // Edit button background
+      editButton.append('circle')
+        .attr('r', 8)
+        .style('fill', '#e0e0e0')
+        .style('stroke', '#ccc')
+        .style('stroke-width', 1);
+      
+      // Edit icon
+      editButton.append('path')
+        .attr('d', 'M-3,0 L3,0 M0,-3 L0,3')
+        .style('fill', 'none')
+        .style('stroke', '#666')
+        .style('stroke-width', 2);
+    }
+  });
   
   // Add arrow marker definition to SVG
   const defs = group.append('defs');
@@ -272,6 +349,7 @@ function renderMetricsLabels(group, processes, options) {
     .enter()
     .append('g')
     .attr('class', 'metrics')
+    .attr('data-process-id', d => d.id) // Add reference to process ID
     .attr('transform', d => `translate(${d.position.x}, ${d.position.y + blockHeight + 5})`);
   
   // Add metric boxes

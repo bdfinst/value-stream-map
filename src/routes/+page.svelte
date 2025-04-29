@@ -5,6 +5,7 @@
   import { initVSMStore } from '$lib/valueStream/vsmStore.js';
   import Modal from '$lib/components/Modal.svelte';
   import ProcessEditor from '$lib/components/ProcessEditor.svelte';
+  import ConnectionEditor from '$lib/components/ConnectionEditor.svelte';
 
   let container;
   let renderedSvg;
@@ -13,7 +14,9 @@
   
   // Modal state
   let showProcessModal = false;
+  let showConnectionModal = false;
   let currentProcess = null;
+  let currentConnection = null;
   
   // Create sample VSM data
   function createSampleVSM() {
@@ -124,7 +127,9 @@
         width: 1000,
         height: 400,
         onBlockClick: handleProcessClick,
-        onBlockDrag: handleProcessDrag
+        onBlockDrag: handleProcessDrag,
+        onConnectionClick: handleConnectionClick,
+        onConnectionDrag: handleConnectionDrag
       }
     });
     
@@ -206,24 +211,94 @@
     showProcessModal = true;
   }
   
-  // Remove selected process
-  function removeSelectedProcess() {
+  // Remove selected item
+  function removeSelectedItem() {
     const selectedId = storeValue.selection.selectedIds[0];
     if (selectedId) {
       // Check if it's a process or connection
       const process = storeValue.vsm.processes.find(p => p.id === selectedId);
+      const conn = storeValue.vsm.connections.find(c => c.id === selectedId);
+      
       if (process) {
         if (confirm(`Are you sure you want to remove process "${process.name}"?`)) {
           vsmStore.removeProcess(selectedId);
+        }
+      } else if (conn) {
+        // Get source and target names for better user feedback
+        const source = storeValue.vsm.processes.find(p => p.id === conn.sourceId)?.name || 'Unknown';
+        const target = storeValue.vsm.processes.find(p => p.id === conn.targetId)?.name || 'Unknown';
+        
+        if (confirm(`Are you sure you want to remove the connection from "${source}" to "${target}"?`)) {
+          vsmStore.removeConnection(selectedId);
         }
       }
     }
   }
   
+  // Handle connection drag
+  function handleConnectionDrag(updatedConnection) {
+    console.log('Connection dragged:', updatedConnection);
+    
+    // Update the connection in the store
+    vsmStore.updateConnection(updatedConnection.id, updatedConnection);
+  }
+  
+  // Connection click handler
+  function handleConnectionClick(connection, action) {
+    console.log('Connection clicked:', connection, action);
+    
+    // Toggle selection
+    vsmStore.toggleSelection(connection.id);
+    
+    // Only show edit modal if edit button was clicked
+    if (action === 'edit') {
+      // Store current connection for editing
+      currentConnection = connection;
+      
+      // Show edit modal
+      showConnectionModal = true;
+    }
+  }
+  
+  // Handle connection update
+  function handleConnectionUpdate(updatedConnection) {
+    // Check if this is a new connection (not yet in the store)
+    const isNewConnection = !storeValue.vsm.connections.some(c => c.id === updatedConnection.id);
+    
+    if (isNewConnection) {
+      // Add new connection to the store
+      vsmStore.addConnection(updatedConnection);
+    } else {
+      // Update existing connection
+      vsmStore.updateConnection(updatedConnection.id, updatedConnection);
+    }
+    
+    // Close the modal
+    showConnectionModal = false;
+    currentConnection = null;
+  }
+  
+  // Create a new connection
+  function createNewConnection() {
+    const newId = `conn${storeValue.vsm.connections.length + 1}_${Date.now()}`;
+    const newConnection = connection.create({
+      id: newId,
+      sourceId: '',
+      targetId: '',
+      metrics: { transferTime: 0, batchSize: 1 }
+    });
+    
+    // Don't add to the store yet, just show the edit dialog
+    currentConnection = newConnection;
+    showConnectionModal = true;
+  }
+  
   // Cancel editing
   function cancelEditing() {
     showProcessModal = false;
+    showConnectionModal = false;
     currentProcess = null;
+    currentConnection = null;
   }
 
   onMount(() => {
@@ -264,10 +339,17 @@
       Add Process
     </button>
     
+    <button 
+      class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+      on:click={createNewConnection}
+    >
+      Add Connection
+    </button>
+    
     {#if storeValue && storeValue.selection.selectedIds.length > 0}
       <button 
         class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-        on:click={removeSelectedProcess}
+        on:click={removeSelectedItem}
       >
         Remove Selected
       </button>
@@ -309,6 +391,21 @@
       process={currentProcess} 
       onSave={handleProcessUpdate} 
       onCancel={cancelEditing} 
+    />
+  {/if}
+</Modal>
+
+<Modal
+  show={showConnectionModal}
+  title="Edit Connection"
+  onClose={cancelEditing}
+>
+  {#if currentConnection && storeValue}
+    <ConnectionEditor
+      connection={currentConnection}
+      processes={storeValue.vsm.processes}
+      onSave={handleConnectionUpdate}
+      onCancel={cancelEditing}
     />
   {/if}
 </Modal>

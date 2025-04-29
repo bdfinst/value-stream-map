@@ -37,6 +37,61 @@ function initVSMStore(initialVSM) {
     },
     
     /**
+     * Adds a connection to the VSM
+     * @param {import('./connection').Connection} connection - Connection to add
+     */
+    addConnection: (connection) => {
+      update(state => {
+        // Use the VSM's addConnection function to maintain immutability
+        const updatedVSM = createVSM.addConnection(state.vsm, connection);
+        
+        return {
+          ...state,
+          vsm: updatedVSM
+        };
+      });
+    },
+    
+    /**
+     * Updates a connection in the VSM
+     * @param {string} connectionId - ID of connection to update
+     * @param {Object} updates - Connection properties to update
+     */
+    updateConnection: (connectionId, updates) => {
+      update(state => {
+        // Find the connection to update
+        const connectionIndex = state.vsm.connections.findIndex(c => c.id === connectionId);
+        if (connectionIndex === -1) return state;
+        
+        // Get the current connection
+        const connection = state.vsm.connections[connectionIndex];
+        
+        // Create updated connection (immutably)
+        const updatedConnection = {
+          ...connection,
+          ...updates
+        };
+        
+        // Create a new connections array with the updated connection
+        const updatedConnections = [
+          ...state.vsm.connections.slice(0, connectionIndex),
+          updatedConnection,
+          ...state.vsm.connections.slice(connectionIndex + 1)
+        ];
+        
+        // Update the VSM with the new connections array
+        const updatedVSM = createVSM.update(state.vsm, {
+          connections: updatedConnections
+        });
+        
+        return {
+          ...state,
+          vsm: updatedVSM
+        };
+      });
+    },
+    
+    /**
      * Updates a process in the VSM
      * @param {string} processId - ID of process to update
      * @param {Object} updates - Process properties to update
@@ -92,6 +147,27 @@ function initVSMStore(initialVSM) {
         // Update the VSM
         const updatedVSM = createVSM.update(state.vsm, {
           processes: updatedProcesses,
+          connections: updatedConnections
+        });
+        
+        return {
+          ...state,
+          vsm: updatedVSM
+        };
+      });
+    },
+    
+    /**
+     * Removes a connection from the VSM
+     * @param {string} connectionId - ID of connection to remove
+     */
+    removeConnection: (connectionId) => {
+      update(state => {
+        // Filter out the connection to remove
+        const updatedConnections = state.vsm.connections.filter(c => c.id !== connectionId);
+        
+        // Update the VSM
+        const updatedVSM = createVSM.update(state.vsm, {
           connections: updatedConnections
         });
         
