@@ -46,12 +46,12 @@ function renderVSM({ container, vsm, options = {} }) {
 
 	// Get the actual dimensions of the container
 	const containerRect = container.getBoundingClientRect();
-	const containerWidth = containerRect.width || width;
-	const containerHeight = containerRect.height || height;
+	const containerWidth = Math.max(containerRect.width || width, 200);
+	const containerHeight = Math.max(containerRect.height || height, 200);
 
 	// Adjust viewBox to maintain aspect ratio based on container size
-	const viewBoxWidth = Math.max(width, containerWidth);
-	const viewBoxHeight = Math.max(height, containerHeight);
+	const viewBoxWidth = containerWidth;
+	const viewBoxHeight = containerHeight;
 
 	// Create SVG container with zoom behavior and responsive sizing
 	const svg = d3
@@ -100,11 +100,24 @@ function renderVSM({ container, vsm, options = {} }) {
 			minX = Math.min(minX, x);
 			minY = Math.min(minY, y);
 			maxX = Math.max(maxX, x + blockWidth);
-			maxY = Math.max(maxY, y + blockHeight + 45); // Include metrics box
+			maxY = Math.max(maxY, y + blockHeight + 60); // Include metrics box with more space
+		});
+
+		// Consider connection paths for bounds
+		vsm.connections.forEach((connection) => {
+			// Check if this has a rework path that might extend beyond the processes
+			if (connection.isRework && connection.path && connection.path.length > 0) {
+				connection.path.forEach(point => {
+					minX = Math.min(minX, point[0]);
+					minY = Math.min(minY, point[1]);
+					maxX = Math.max(maxX, point[0]);
+					maxY = Math.max(maxY, point[1]);
+				});
+			}
 		});
 
 		// Add padding
-		const padding = 50;
+		const padding = 60; // Increased padding
 		minX -= padding;
 		minY -= padding;
 		maxX += padding;
@@ -116,17 +129,32 @@ function renderVSM({ container, vsm, options = {} }) {
 		const x = minX;
 		const y = minY;
 
-		// Calculate scale
-		const scale = Math.min((0.9 * width) / dx, (0.9 * height) / dy);
+		// Get actual container dimensions - make sure we use the current size
+		const containerRect = container.getBoundingClientRect();
+		const containerWidth = Math.max(containerRect.width, 200); // Ensure minimum width
+		const containerHeight = Math.max(containerRect.height, 200); // Ensure minimum height
 
-		// Calculate center position
-		const translate = [width / 2 - scale * (x + dx / 2), height / 2 - scale * (y + dy / 2)];
+		// Calculate scale to fit the entire diagram
+		// Use 0.95 instead of 0.9 to fill more of the canvas
+		const scale = Math.min(
+			(0.95 * containerWidth) / dx, 
+			(0.95 * containerHeight) / dy
+		);
+
+		// Calculate translate values to center the diagram
+		const translateX = (containerWidth / 2) - (scale * (x + dx / 2));
+		const translateY = (containerHeight / 2) - (scale * (y + dy / 2));
+
+		// Log dimensions for debugging
+		console.log('Zoom bounds:', { minX, minY, maxX, maxY, dx, dy });
+		console.log('Container size:', { containerWidth, containerHeight });
+		console.log('Zoom transform:', { translateX, translateY, scale });
 
 		// Apply zoom transform
 		svg
 			.transition()
 			.duration(duration)
-			.call(zoom.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+			.call(zoom.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
 	}
 
 	// No internal zoom controls - using external controls only

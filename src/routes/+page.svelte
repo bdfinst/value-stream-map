@@ -342,6 +342,13 @@
 			if (container && storeValue?.vsm) {
 				// Re-render on resize
 				renderVSMWithSelection(storeValue.vsm, storeValue.selection);
+				
+				// Fit to screen after a short delay to ensure rendering is complete
+				setTimeout(() => {
+					if (zoomController.zoomFit) {
+						zoomController.zoomFit();
+					}
+				}, 100);
 			}
 		});
 
@@ -466,14 +473,12 @@
 	{#if storeValue && storeValue.vsm}
 		<div class="mt-8">
 			<!-- Best case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">
-				Best Case (No Rework)
-			</h3>
+			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">Primary Flow</h3>
 			<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
 				<div
 					class="rounded-md border border-[var(--color-light-gray)] bg-[var(--color-background-white)] p-4 text-center"
 				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Best Case Lead Time</h3>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Lead Time</h3>
 					<p class="mt-2 text-2xl font-bold text-[var(--color-defense-dark)]">
 						{storeValue.vsm.metrics.totalLeadTime}
 					</p>
@@ -497,14 +502,12 @@
 			</div>
 
 			<!-- Worst case metrics -->
-			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">
-				Worst Case (With Rework)
-			</h3>
+			<h3 class="mb-2 text-lg font-semibold text-[var(--color-unicorn-white)]">Exception Flow</h3>
 			<div class="grid grid-cols-1 gap-4 md:grid-cols-3">
 				<div
 					class="rounded-md border border-[var(--color-action-red)] bg-[var(--color-unicorn-white)] p-4 text-center"
 				>
-					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Worst Case Lead Time</h3>
+					<h3 class="text-sm font-medium text-[var(--color-mission-blue)]">Exception Lead Time</h3>
 					<p class="mt-2 text-2xl font-bold text-[var(--color-action-red)]">
 						{storeValue.vsm.metrics.worstCaseLeadTime || storeValue.vsm.metrics.totalLeadTime}
 					</p>
