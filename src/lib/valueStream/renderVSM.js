@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
-import { createProcessDragBehavior } from './draggable.js';
+
 import { createConnectionDragBehavior } from './connectionDrag.js';
+import { createProcessDragBehavior } from './draggable.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock
@@ -294,7 +295,7 @@ function renderProcessBlocks(group, processes, options) {
 	editGroup
 		.append('xhtml:div')
 		.attr('class', 'fa-container w-full h-full flex items-center justify-center')
-		.html('<i class="fas fa-edit text-gray-600 hover:text-blue-500 text-lg"></i>');
+		.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg"></i>');
 }
 
 /**
