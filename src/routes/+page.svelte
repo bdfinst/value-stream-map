@@ -342,7 +342,7 @@
 			if (container && storeValue?.vsm) {
 				// Re-render on resize
 				renderVSMWithSelection(storeValue.vsm, storeValue.selection);
-				
+
 				// Fit to screen after a short delay to ensure rendering is complete
 				setTimeout(() => {
 					if (zoomController.zoomFit) {

@@ -107,7 +107,7 @@ function renderVSM({ container, vsm, options = {} }) {
 		vsm.connections.forEach((connection) => {
 			// Check if this has a rework path that might extend beyond the processes
 			if (connection.isRework && connection.path && connection.path.length > 0) {
-				connection.path.forEach(point => {
+				connection.path.forEach((point) => {
 					minX = Math.min(minX, point[0]);
 					minY = Math.min(minY, point[1]);
 					maxX = Math.max(maxX, point[0]);
@@ -136,14 +136,11 @@ function renderVSM({ container, vsm, options = {} }) {
 
 		// Calculate scale to fit the entire diagram
 		// Use 0.95 instead of 0.9 to fill more of the canvas
-		const scale = Math.min(
-			(0.95 * containerWidth) / dx, 
-			(0.95 * containerHeight) / dy
-		);
+		const scale = Math.min((0.95 * containerWidth) / dx, (0.95 * containerHeight) / dy);
 
 		// Calculate translate values to center the diagram
-		const translateX = (containerWidth / 2) - (scale * (x + dx / 2));
-		const translateY = (containerHeight / 2) - (scale * (y + dy / 2));
+		const translateX = containerWidth / 2 - scale * (x + dx / 2);
+		const translateY = containerHeight / 2 - scale * (y + dy / 2);
 
 		// Log dimensions for debugging
 		console.log('Zoom bounds:', { minX, minY, maxX, maxY, dx, dy });
@@ -463,12 +460,12 @@ function renderConnections(group, connections, processes, options) {
 						: `translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2 - 20})`
 				); // Above the line for normal
 
-			// Add background pill
+			// Add background pill - wider to accommodate edit button
 			labelGroup
 				.append('rect')
-				.attr('x', -30)
+				.attr('x', -40) // Shift left to maintain centering
 				.attr('y', -12)
-				.attr('width', 60)
+				.attr('width', 80) // Wider (was 60px)
 				.attr('height', 24)
 				.attr('rx', 12)
 				.attr('ry', 12)
@@ -476,20 +473,49 @@ function renderConnections(group, connections, processes, options) {
 				.style('stroke', strokeColor)
 				.style('stroke-width', 1);
 
-			// Add wait time text
+			// Add wait time text - shifted left to make room for edit button
 			labelGroup
 				.append('text')
-				.attr('x', 0)
+				.attr('x', -10) // Shift left (was 0)
 				.attr('y', 5)
 				.attr('text-anchor', 'middle')
 				.style('font-size', '11px')
 				.style('font-weight', 'bold')
 				.style('fill', strokeColor)
 				.text(`WT: ${d.metrics.waitTime}`);
+
+			// Add edit button directly inside the wait time label group
+			if (onEditClick || onClick) {
+				const editButton = labelGroup
+					.append('foreignObject')
+					.attr('class', 'connection-edit')
+					.attr('x', 17) // Position at right side of pill
+					.attr('y', -12)
+					.attr('width', 24)
+					.attr('height', 24)
+					.style('cursor', 'pointer')
+					.on('click', (event, d) => {
+						event.stopPropagation();
+
+						// Use the dedicated edit handler if available
+						if (onEditClick) {
+							onEditClick(d);
+						} else if (onClick) {
+							// Fallback to onClick with 'edit' action if no dedicated handler
+							onClick(d, 'edit');
+						}
+					});
+
+				// Add Font Awesome edit icon using HTML
+				editButton
+					.append('xhtml:div')
+					.attr('class', 'fa-container w-full h-full flex items-center justify-center')
+					.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-sm"></i>');
+			}
 		}
 
-		// Add edit button with Font Awesome
-		if (onClick) {
+		// Add floating edit button only if there's no wait time label
+		if (onClick && (!d.metrics || d.metrics.waitTime === undefined)) {
 			const editButton = d3
 				.select(this)
 				.append('foreignObject')
