@@ -118,9 +118,11 @@
       options: {
         width: 1000,
         height: 400,
-        onBlockClick: handleProcessClick,
+        onBlockClick: handleProcessSelection,
+        onBlockEdit: handleProcessEdit,
         onBlockDrag: handleProcessDrag,
-        onConnectionClick: handleConnectionClick,
+        onConnectionClick: handleConnectionSelection,
+        onConnectionEdit: handleConnectionEdit,
         onConnectionDrag: handleConnectionDrag
       }
     });
@@ -163,21 +165,23 @@
     // and connections will be redrawn correctly through renderVSMWithSelection
   }
 
-  // Process block click handler
-  function handleProcessClick(process, action) {
-    console.log('Process clicked:', process, action);
+  // Process selection handler
+  function handleProcessSelection(process) {
+    console.log('Process selected:', process);
     
     // Toggle selection
     vsmStore.toggleSelection(process.id);
+  }
+  
+  // Process edit handler 
+  function handleProcessEdit(process) {
+    console.log('Process edit:', process);
     
-    // Only show edit modal if edit button was clicked
-    if (action === 'edit') {
-      // Store current process for editing
-      currentProcess = process;
-      
-      // Show edit modal
-      showProcessModal = true;
-    }
+    // Store current process for editing
+    currentProcess = process;
+    
+    // Show edit modal
+    showProcessModal = true;
   }
   
   // Handle process update
@@ -245,21 +249,23 @@
     vsmStore.updateConnection(updatedConnection.id, updatedConnection);
   }
   
-  // Connection click handler
-  function handleConnectionClick(connection, action) {
-    console.log('Connection clicked:', connection, action);
+  // Connection selection handler
+  function handleConnectionSelection(connection) {
+    console.log('Connection selected:', connection);
     
     // Toggle selection
     vsmStore.toggleSelection(connection.id);
+  }
+  
+  // Connection edit handler
+  function handleConnectionEdit(connection) {
+    console.log('Connection edit:', connection);
     
-    // Only show edit modal if edit button was clicked
-    if (action === 'edit') {
-      // Store current connection for editing
-      currentConnection = connection;
-      
-      // Show edit modal
-      showConnectionModal = true;
-    }
+    // Store current connection for editing
+    currentConnection = connection;
+    
+    // Show edit modal
+    showConnectionModal = true;
   }
   
   // Handle connection update

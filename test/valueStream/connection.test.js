@@ -14,40 +14,29 @@ describe('connection', () => {
         id: 'conn1',
         sourceId: 'process1',
         targetId: 'process2',
-        path: [],
-        metrics: {
-          transferTime: 0,
-          batchSize: 1
-        }
+        path: []
       });
     });
     
     it('creates a connection with custom properties', () => {
       const path = [[10, 20], [30, 40]];
-      const metrics = { transferTime: 5, batchSize: 10 };
       
       const conn = connection.create({
         id: 'conn1',
         sourceId: 'process1',
         targetId: 'process2',
-        path,
-        metrics
+        path
       });
       
       expect(conn).toEqual({
         id: 'conn1',
         sourceId: 'process1',
         targetId: 'process2',
-        path: [[10, 20], [30, 40]],
-        metrics: {
-          transferTime: 5,
-          batchSize: 10
-        }
+        path: [[10, 20], [30, 40]]
       });
       
       // Ensure deep copies were made
       expect(conn.path).not.toBe(path);
-      expect(conn.metrics).not.toBe(metrics);
     });
   });
   
@@ -86,23 +75,5 @@ describe('connection', () => {
       expect(updated.path).toEqual(newPath);
     });
     
-    it('updates metrics immutably', () => {
-      const original = connection.create({
-        id: 'conn1',
-        sourceId: 'process1',
-        targetId: 'process2',
-        metrics: { transferTime: 5, batchSize: 1 }
-      });
-      
-      const updated = connection.update(original, {
-        metrics: { transferTime: 10 }
-      });
-      
-      expect(updated.metrics).not.toBe(original.metrics);
-      expect(updated.metrics).toEqual({
-        transferTime: 10,
-        batchSize: 1
-      });
-    });
   });
 });

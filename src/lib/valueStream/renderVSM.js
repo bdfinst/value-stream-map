@@ -18,9 +18,11 @@ import { createConnectionDragBehavior } from './connectionDrag.js';
  * @param {number} [params.options.height=600] - SVG height
  * @param {number} [params.options.blockWidth=120] - Process block width
  * @param {number} [params.options.blockHeight=80] - Process block height
- * @param {Function} [params.options.onBlockClick] - Process block click handler
+ * @param {Function} [params.options.onBlockClick] - Process block click handler (for selection)
+ * @param {Function} [params.options.onBlockEdit] - Process block edit handler (for editing)
  * @param {Function} [params.options.onBlockDrag] - Process block drag handler
- * @param {Function} [params.options.onConnectionClick] - Connection click handler
+ * @param {Function} [params.options.onConnectionClick] - Connection click handler (for selection)
+ * @param {Function} [params.options.onConnectionEdit] - Connection edit handler (for editing)
  * @param {Function} [params.options.onConnectionDrag] - Connection endpoint drag handler
  * @param {Function} [params.options.onZoomFit] - Callback when zoom fit is requested
  * @returns {Object} - D3 selection of the rendered SVG and zoom controller
@@ -36,8 +38,10 @@ function renderVSM({
     blockWidth = 120,
     blockHeight = 80,
     onBlockClick = () => {},
+    onBlockEdit = null,
     onBlockDrag = null,
     onConnectionClick = null,
+    onConnectionEdit = null,
     onConnectionDrag = null,
     onZoomFit = null
   } = options;
@@ -136,6 +140,7 @@ function renderVSM({
     blockWidth, 
     blockHeight,
     onClick: onConnectionClick,
+    onEditClick: onConnectionEdit,
     onDragEnd: onConnectionDrag,
     processes: vsm.processes
   });
@@ -145,6 +150,7 @@ function renderVSM({
     blockWidth, 
     blockHeight,
     onClick: onBlockClick,
+    onEditClick: onBlockEdit,
     onDragEnd: onBlockDrag,
     connections: vsm.connections,
     processes: vsm.processes
@@ -170,9 +176,16 @@ function renderVSM({
  * @param {Object} group - D3 selection for the group to render into
  * @param {Array<ProcessBlock>} processes - Process blocks to render
  * @param {Object} options - Rendering options
+ * @param {number} options.blockWidth - Width of process blocks
+ * @param {number} options.blockHeight - Height of process blocks
+ * @param {Function} [options.onClick] - Process block click handler for selection
+ * @param {Function} [options.onEditClick] - Process block edit handler
+ * @param {Function} [options.onDragEnd] - Process block drag handler
+ * @param {Array<Connection>} [options.connections] - Connections for reference
+ * @param {Array<ProcessBlock>} [options.processes] - Processes for reference
  */
 function renderProcessBlocks(group, processes, options) {
-  const { blockWidth, blockHeight, onClick, onDragEnd } = options;
+  const { blockWidth, blockHeight, onClick, onEditClick, onDragEnd } = options;
   
   // Create process block groups
   const processGroups = group.selectAll('.process')
@@ -237,7 +250,14 @@ function renderProcessBlocks(group, processes, options) {
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
       event.stopPropagation(); // Prevent triggering block click
-      options.onClick(d, 'edit');
+      
+      // Use the dedicated edit handler if available
+      if (onEditClick) {
+        onEditClick(d);
+      } else if (onClick) {
+        // Fallback to onClick with 'edit' action if no dedicated handler
+        onClick(d, 'edit');
+      }
     });
   
   // Add Font Awesome edit icon using HTML
@@ -252,9 +272,15 @@ function renderProcessBlocks(group, processes, options) {
  * @param {Array<Connection>} connections - Connections to render
  * @param {Array<ProcessBlock>} processes - Process blocks for reference
  * @param {Object} options - Rendering options
+ * @param {number} options.blockWidth - Width of process blocks
+ * @param {number} options.blockHeight - Height of process blocks
+ * @param {Function} [options.onClick] - Connection click handler for selection
+ * @param {Function} [options.onEditClick] - Connection edit handler
+ * @param {Function} [options.onDragEnd] - Connection drag handler
+ * @param {Array<ProcessBlock>} [options.processes] - Processes for reference
  */
 function renderConnections(group, connections, processes, options) {
-  const { blockWidth, blockHeight, onClick, onDragEnd, processes: allProcesses } = options;
+  const { blockWidth, blockHeight, onClick, onEditClick, onDragEnd, processes: allProcesses } = options;
   
   // Create a lookup map for processes by ID
   const processMap = processes.reduce((map, process) => {
@@ -367,7 +393,14 @@ function renderConnections(group, connections, processes, options) {
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           event.stopPropagation();
-          onClick(d, 'edit');
+          
+          // Use the dedicated edit handler if available
+          if (onEditClick) {
+            onEditClick(d);
+          } else if (onClick) {
+            // Fallback to onClick with 'edit' action if no dedicated handler
+            onClick(d, 'edit');
+          }
         });
       
       // Add Font Awesome edit icon using HTML

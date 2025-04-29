@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store';
 import createVSM from './createVSM.js';
-import { getSelectionState } from './selection.js';
+import { getSelectionState, selectItem } from './selection.js';
 
 /**
  * Creates a VSM store with state management functions
@@ -192,19 +192,32 @@ function initVSMStore(initialVSM) {
      */
     toggleSelection: (id) => {
       update(state => {
-        const selectedIds = state.selection.selectedIds;
-        const isSelected = selectedIds.includes(id);
+        const isSelected = state.selection.selectedIds.includes(id);
         
         return {
           ...state,
           selection: {
             ...state.selection,
-            selectedIds: isSelected
-              ? selectedIds.filter(selectedId => selectedId !== id)
-              : [...selectedIds, id]
+            selectedIds: isSelected 
+              ? [] // Deselect if already selected
+              : [id] // Select only this item
           }
         };
       });
+    },
+    
+    /**
+     * Selects a specific item (without toggling)
+     * @param {string} id - ID of item to select
+     */
+    selectItem: (id) => {
+      update(state => ({
+        ...state,
+        selection: {
+          ...state.selection,
+          selectedIds: [id]
+        }
+      }));
     },
     
     /**
