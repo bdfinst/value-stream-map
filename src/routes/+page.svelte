@@ -155,10 +155,13 @@
   
   // Process drag handler
   function handleProcessDrag(updatedProcess) {
-    // Update the process position in the store
-    vsmStore.updateProcess(updatedProcess.id, {
-      position: updatedProcess.position
-    });
+    console.log('Process dragged:', updatedProcess);
+    
+    // Update the entire process in the store to ensure position is updated correctly
+    vsmStore.updateProcess(updatedProcess.id, updatedProcess);
+    
+    // When the store updates, the rendering will be triggered automatically
+    // and connections will be redrawn correctly through renderVSMWithSelection
   }
 
   // Process block click handler
@@ -333,24 +336,27 @@
   
   <div class="mb-4 flex space-x-2">
     <button 
-      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+      class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
       on:click={createNewProcess}
     >
+      <i class="fas fa-cube"></i>
       Add Process
     </button>
     
     <button 
-      class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+      class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 flex items-center gap-2"
       on:click={createNewConnection}
     >
+      <i class="fas fa-link"></i>
       Add Connection
     </button>
     
     {#if storeValue && storeValue.selection.selectedIds.length > 0}
       <button 
-        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+        class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center gap-2"
         on:click={removeSelectedItem}
       >
+        <i class="fas fa-trash-alt"></i>
         Remove Selected
       </button>
     {/if}

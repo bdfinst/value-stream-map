@@ -111,6 +111,14 @@ function initVSMStore(initialVSM) {
           ...updates
         };
         
+        // Handle position updates properly
+        if (updates.position) {
+          updatedProcess.position = {
+            ...updatedProcess.position,
+            ...updates.position
+          };
+        }
+        
         // Create a new processes array with the updated process
         const updatedProcesses = [
           ...state.vsm.processes.slice(0, processIndex),

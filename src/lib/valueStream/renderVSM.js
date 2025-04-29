@@ -83,7 +83,9 @@ function renderVSM({
     blockWidth, 
     blockHeight,
     onClick: onBlockClick,
-    onDragEnd: onBlockDrag
+    onDragEnd: onBlockDrag,
+    connections: vsm.connections,
+    processes: vsm.processes
   });
   
   // Render metrics labels
@@ -113,7 +115,19 @@ function renderProcessBlocks(group, processes, options) {
   
   // Apply drag behavior if provided
   if (onDragEnd) {
-    processGroups.call(createProcessDragBehavior(d3, onDragEnd, blockHeight));
+    const allConnections = options.connections || [];
+    const allProcesses = options.processes || [];
+    
+    processGroups.call(
+      createProcessDragBehavior(
+        d3, 
+        onDragEnd, 
+        blockHeight, 
+        blockWidth, 
+        allConnections, 
+        allProcesses
+      )
+    );
   }
   
   // Add process rectangles
@@ -142,32 +156,23 @@ function renderProcessBlocks(group, processes, options) {
     .style('font-size', '14px')
     .text(d => d.name);
   
-  // Add edit button
-  const editGroup = processGroups.append('g')
+  // Add edit button with Font Awesome
+  const editGroup = processGroups.append('foreignObject')
     .attr('class', 'edit-button')
-    .attr('transform', `translate(${blockWidth - 22}, 4)`)
+    .attr('x', blockWidth - 32)
+    .attr('y', 4)
+    .attr('width', 28)
+    .attr('height', 28)
     .style('cursor', 'pointer')
     .on('click', (event, d) => {
       event.stopPropagation(); // Prevent triggering block click
-      const editEvent = new CustomEvent('edit', { detail: d });
       options.onClick(d, 'edit');
     });
   
-  // Edit button background
-  editGroup.append('rect')
-    .attr('width', 18)
-    .attr('height', 18)
-    .attr('rx', 3)
-    .attr('ry', 3)
-    .style('fill', '#e0e0e0')
-    .style('stroke', '#ccc')
-    .style('stroke-width', 1);
-  
-  // Edit icon (pencil)
-  editGroup.append('path')
-    .attr('d', 'M3,12 L3,15 L6,15 L13,8 L10,5 L3,12 Z M14,7 L11,4 L12.5,2.5 L15.5,5.5 L14,7 Z')
-    .attr('transform', 'translate(2, 2) scale(0.8)')
-    .style('fill', '#666');
+  // Add Font Awesome edit icon using HTML
+  editGroup.append('xhtml:div')
+    .attr('class', 'fa-container w-full h-full flex items-center justify-center')
+    .html('<i class="fas fa-edit text-gray-600 hover:text-blue-500 text-lg"></i>');
 }
 
 /**
@@ -212,6 +217,7 @@ function renderConnections(group, connections, processes, options) {
     .enter()
     .append('g')
     .attr('class', 'connection')
+    .attr('data-id', d => d.id) // Add data-id for selection
     .style('cursor', onClick ? 'pointer' : 'default');
   
   if (onClick) {
@@ -290,31 +296,25 @@ function renderConnections(group, connections, processes, options) {
         .text(`Batch: ${d.metrics.batchSize}`);
     }
     
-    // Add edit button
+    // Add edit button with Font Awesome
     if (onClick) {
       const editButton = d3.select(this)
-        .append('g')
+        .append('foreignObject')
         .attr('class', 'connection-edit')
-        .attr('transform', `translate(${midX - 10}, ${midY + 10})`)
+        .attr('x', midX - 14)
+        .attr('y', midY - 4)
+        .attr('width', 28)
+        .attr('height', 28)
         .style('cursor', 'pointer')
         .on('click', (event, d) => {
           event.stopPropagation();
           onClick(d, 'edit');
         });
       
-      // Edit button background
-      editButton.append('circle')
-        .attr('r', 8)
-        .style('fill', '#e0e0e0')
-        .style('stroke', '#ccc')
-        .style('stroke-width', 1);
-      
-      // Edit icon
-      editButton.append('path')
-        .attr('d', 'M-3,0 L3,0 M0,-3 L0,3')
-        .style('fill', 'none')
-        .style('stroke', '#666')
-        .style('stroke-width', 2);
+      // Add Font Awesome edit icon using HTML
+      editButton.append('xhtml:div')
+        .attr('class', 'fa-container w-full h-full flex items-center justify-center')
+        .html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg bg-white rounded-full p-1"></i>');
     }
   });
   
