@@ -14,7 +14,9 @@ describe('connection', () => {
         id: 'conn1',
         sourceId: 'process1',
         targetId: 'process2',
-        path: []
+        path: [],
+        metrics: { waitTime: 0 },
+        isRework: false
       });
     });
     
@@ -32,7 +34,9 @@ describe('connection', () => {
         id: 'conn1',
         sourceId: 'process1',
         targetId: 'process2',
-        path: [[10, 20], [30, 40]]
+        path: [[10, 20], [30, 40]],
+        metrics: { waitTime: 0 },
+        isRework: false
       });
       
       // Ensure deep copies were made

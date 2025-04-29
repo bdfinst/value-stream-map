@@ -38,7 +38,9 @@ describe('ValueStreamMap', () => {
         metrics: {
           totalLeadTime: 0,
           totalValueAddedTime: 0,
-          valueAddedRatio: 0
+          valueAddedRatio: 0,
+          totalReworkTime: 0,
+          worstCaseLeadTime: 0
         }
       });
     });
@@ -61,9 +63,9 @@ describe('ValueStreamMap', () => {
       expect(vsm.connections).not.toBe([sampleConnection]);
       
       // Verify metrics calculation
-      expect(vsm.metrics.totalLeadTime).toBe(50); // 10 + 5 + 20 + 10 + 5 (all process times + wait times + transfer time)
+      expect(vsm.metrics.totalLeadTime).toBe(30); // 10 + 20 (only process times are part of cycleTime in the new implementation)
       expect(vsm.metrics.totalValueAddedTime).toBe(30); // 10 + 20 (only process times)
-      expect(vsm.metrics.valueAddedRatio).toBe(0.6); // 30/50
+      expect(vsm.metrics.valueAddedRatio).toBe(1.0); // 30/30
     });
   });
   
@@ -99,7 +101,7 @@ describe('ValueStreamMap', () => {
       
       expect(updated.processes).not.toBe(original.processes);
       expect(updated.processes).toHaveLength(2);
-      expect(updated.metrics.totalLeadTime).toBe(45); // 10 + 5 + 20 + 10
+      expect(updated.metrics.totalLeadTime).toBe(30); // 10 + 20 (only process times in cycle time now)
       expect(updated.metrics.totalValueAddedTime).toBe(30); // 10 + 20
     });
   });
@@ -116,7 +118,7 @@ describe('ValueStreamMap', () => {
       
       expect(updated.processes).toHaveLength(2);
       expect(updated.processes[1]).toEqual(sampleProcess2);
-      expect(updated.metrics.totalLeadTime).toBe(45); // 10 + 5 + 20 + 10
+      expect(updated.metrics.totalLeadTime).toBe(30); // 10 + 20 (only process times)
     });
   });
   
@@ -132,7 +134,7 @@ describe('ValueStreamMap', () => {
       
       expect(updated.connections).toHaveLength(1);
       expect(updated.connections[0]).toEqual(sampleConnection);
-      expect(updated.metrics.totalLeadTime).toBe(50); // 10 + 5 + 20 + 10 + 5
+      expect(updated.metrics.totalLeadTime).toBe(30); // 10 + 20 (only process times)
     });
   });
 });

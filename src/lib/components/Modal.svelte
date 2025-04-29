@@ -23,6 +23,9 @@
   <div 
     class="fixed inset-0 bg-[var(--color-hero-navy-40)] flex items-center justify-center z-50"
     on:click={handleBackdropClick}
+    on:keydown={handleEscape}
+    role="dialog"
+    tabindex="-1"
   >
     <div 
       class="bg-[var(--color-unicorn-white)] rounded-lg shadow-xl max-w-md w-full mx-4 overflow-hidden"

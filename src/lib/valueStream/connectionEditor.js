@@ -18,6 +18,22 @@ function validateConnection(connection) {
     errors.targetId = 'Target must be different from source';
   }
   
+  // Validate metrics
+  if (connection.metrics) {
+    if (connection.metrics.waitTime !== undefined && connection.metrics.waitTime < 0) {
+      errors['metrics.waitTime'] = 'Wait time must be a positive number';
+    }
+    
+    // For backward compatibility with tests
+    if (connection.metrics.transferTime !== undefined && connection.metrics.transferTime < 0) {
+      errors['metrics.transferTime'] = 'Transfer time must be a positive number';
+    }
+    
+    if (connection.metrics.batchSize !== undefined && connection.metrics.batchSize <= 0) {
+      errors['metrics.batchSize'] = 'Batch size must be a positive number';
+    }
+  }
+  
   return {
     isValid: Object.keys(errors).length === 0,
     errors

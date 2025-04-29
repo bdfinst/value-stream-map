@@ -1,6 +1,23 @@
 import processBlock from './processBlock.js';
 
 /**
+ * Applies a drag operation to a process block, updating its position
+ * @param {Object} process - The process block to update
+ * @param {Object} delta - The drag delta
+ * @param {number} delta.dx - The x delta
+ * @param {number} delta.dy - The y delta
+ * @returns {Object} - Updated process block with new position
+ */
+function applyDragToProcess(process, { dx, dy }) {
+  return processBlock.update(process, {
+    position: {
+      x: process.position.x + dx,
+      y: process.position.y + dy
+    }
+  });
+}
+
+/**
  * Creates a D3 drag behavior for process blocks
  * @param {Object} d3 - D3 library instance
  * @param {Function} onDragEnd - Callback function when drag ends
@@ -128,4 +145,4 @@ function createProcessDragBehavior(d3, onDragEnd, blockHeight = 80, blockWidth =
     });
 }
 
-export { createProcessDragBehavior };
+export { createProcessDragBehavior, applyDragToProcess };

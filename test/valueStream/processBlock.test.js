@@ -15,8 +15,8 @@ describe('processBlock', () => {
         description: '',
         position: { x: 0, y: 0 },
         metrics: {
-          processTime: 0, 
-          waitTime: 0,
+          processTime: 0,
+          completeAccurate: 100,
           cycleTime: 0
         }
       });
@@ -42,7 +42,8 @@ describe('processBlock', () => {
         metrics: {
           processTime: 30,
           waitTime: 15,
-          cycleTime: 45 // should calculate cycleTime as processTime + waitTime
+          completeAccurate: 100,
+          cycleTime: 30 // cycleTime is now just processTime
         }
       });
     });
@@ -81,7 +82,7 @@ describe('processBlock', () => {
         name: 'Updated Process',
         description: 'Updated description',
         position: { x: 10, y: 20 },
-        metrics: { processTime: 5, waitTime: 10, cycleTime: 15 }
+        metrics: { processTime: 5, waitTime: 10, completeAccurate: 100, cycleTime: 5 }
       });
     });
     
@@ -115,7 +116,8 @@ describe('processBlock', () => {
       expect(updated.metrics).toEqual({
         processTime: 15,
         waitTime: 10,
-        cycleTime: 25
+        completeAccurate: 100,
+        cycleTime: 15
       });
     });
   });
