@@ -1,7 +1,8 @@
-import { describe, test, expect } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+import Page from '$routes/+page.svelte';
 import { render, screen } from '@testing-library/svelte';
-import Page from './+page.svelte';
+import { describe, expect, test } from 'vitest';
 
 describe('/+page.svelte', () => {
 	test('should render h1', () => {
