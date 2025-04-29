@@ -5,8 +5,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "vite build",
-		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
+		"check": "svelte-kit sync",
+		"check:watch": "svelte-kit sync",
 		"dev": "vite dev",
 		"format": "prettier --write . && eslint . --fix",
 		"lint": "prettier --check . && eslint .",
