@@ -166,8 +166,8 @@ function renderVSM({
     processes: vsm.processes
   });
   
-  // Render metrics labels
-  renderMetricsLabels(labelsGroup, vsm.processes, { blockWidth, blockHeight });
+  // Render metrics labels with connections for wait time calculation
+  renderMetricsLabels(labelsGroup, vsm.processes, vsm.connections, { blockWidth, blockHeight });
   
   // Automatically zoom to fit when first rendering
   zoomToFit(0); // No animation on initial render
@@ -310,13 +310,32 @@ function renderConnections(group, connections, processes, options) {
     
     if (!source || !target) return null;
     
-    // Calculate exit and entry points (center of right and left sides)
-    const sourceX = source.position.x + blockWidth;
-    const sourceY = source.position.y + blockHeight / 2;
-    const targetX = target.position.x;
-    const targetY = target.position.y + blockHeight / 2;
+    // Check if this is a rework/feedback connection (going to a previous process)
+    const isReworkConnection = source.position.x > target.position.x;
     
-    return { sourceX, sourceY, targetX, targetY };
+    let sourceX, sourceY, targetX, targetY;
+    
+    if (isReworkConnection) {
+      // For rework connections:
+      // 1. Exit from the top of the source
+      sourceX = source.position.x + blockWidth / 2;
+      sourceY = source.position.y;
+      
+      // 2. Connect to the top of the target
+      targetX = target.position.x + blockWidth / 2;
+      targetY = target.position.y;
+    } else {
+      // For normal flow:
+      // 1. Exit from the right side of the source
+      sourceX = source.position.x + blockWidth;
+      sourceY = source.position.y + blockHeight / 2;
+      
+      // 2. Connect to the left side of the target
+      targetX = target.position.x;
+      targetY = target.position.y + blockHeight / 2;
+    }
+    
+    return { sourceX, sourceY, targetX, targetY, isReworkConnection };
   };
   
   // Generate line generator for connections
@@ -340,26 +359,39 @@ function renderConnections(group, connections, processes, options) {
     const points = getConnectionPoints(d);
     if (!points) return;
     
-    const { sourceX, sourceY, targetX, targetY } = points;
+    const { sourceX, sourceY, targetX, targetY, isReworkConnection } = points;
     
     // Default control points if no custom path
     const pathPoints = d.path && d.path.length > 0 
       ? d.path
-      : [
-          [sourceX, sourceY],
-          [sourceX + (targetX - sourceX) / 2, sourceY],
-          [targetX - (targetX - sourceX) / 2, targetY],
-          [targetX, targetY]
-        ];
+      : isReworkConnection
+        ? [
+            // Rework connection from top of source to top of target
+            [sourceX, sourceY],                    // Start at top of source
+            [sourceX, sourceY - 40],               // Go up from source
+            [(sourceX + targetX) / 2, sourceY - 40], // Horizontal mid-path
+            [targetX, sourceY - 40],               // Continue horizontally to above target
+            [targetX, targetY]                     // Go down to top of target
+          ]
+        : [
+            // Standard connection from left to right
+            [sourceX, sourceY],
+            [sourceX + (targetX - sourceX) / 2, sourceY],
+            [targetX - (targetX - sourceX) / 2, targetY],
+            [targetX, targetY]
+          ];
+    
+    // Set color based on connection type (rework connections are red)
+    const strokeColor = isReworkConnection ? '#e53e3e' : '#555';  // red for rework, gray for normal
     
     // Render connection path
     d3.select(this)
       .append('path')
       .attr('d', lineGenerator(pathPoints))
       .attr('fill', 'none')
-      .attr('stroke', '#555')
+      .attr('stroke', strokeColor)
       .attr('stroke-width', 2)
-      .attr('marker-end', 'url(#arrow)');
+      .attr('marker-end', `url(#${isReworkConnection ? 'arrow-red' : 'arrow'})`);
       
     // Add draggable endpoint if drag handler is provided
     if (onDragEnd) {
@@ -378,7 +410,8 @@ function renderConnections(group, connections, processes, options) {
         .style('fill', '#4CAF50')
         .style('stroke', '#fff')
         .style('stroke-width', 2)
-        .style('cursor', 'move');
+        .style('cursor', 'move')
+        .attr('data-rework', isReworkConnection ? 'true' : 'false'); // Add data attribute to identify rework connections
       
       // Apply drag behavior
       endpointGroup.call(
@@ -395,6 +428,39 @@ function renderConnections(group, connections, processes, options) {
     // Calculate the midpoint for adding controls/labels
     const midX = (sourceX + targetX) / 2;
     const midY = (sourceY + targetY) / 2;
+    
+    // Add wait time label to the connection
+    if (d.metrics && d.metrics.waitTime !== undefined) {
+      // Create label background
+      const labelGroup = d3.select(this)
+        .append('g')
+        .attr('class', 'wait-time-label')
+        .attr('transform', isReworkConnection 
+          ? `translate(${(sourceX + targetX) / 2}, ${sourceY - 60})` // Above the arch for rework
+          : `translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2 - 20})`); // Above the line for normal
+        
+      // Add background pill
+      labelGroup.append('rect')
+        .attr('x', -30)
+        .attr('y', -12)
+        .attr('width', 60)
+        .attr('height', 24)
+        .attr('rx', 12)
+        .attr('ry', 12)
+        .style('fill', 'white')
+        .style('stroke', strokeColor)
+        .style('stroke-width', 1);
+        
+      // Add wait time text
+      labelGroup.append('text')
+        .attr('x', 0)
+        .attr('y', 5)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '11px')
+        .style('font-weight', 'bold')
+        .style('fill', strokeColor)
+        .text(`WT: ${d.metrics.waitTime}`);
+    }
     
     // Add edit button with Font Awesome
     if (onClick) {
@@ -425,9 +491,10 @@ function renderConnections(group, connections, processes, options) {
     }
   });
   
-  // Add arrow marker definition to SVG
+  // Add arrow marker definitions to SVG
   const defs = group.append('defs');
   
+  // Standard gray arrow marker
   defs.append('marker')
     .attr('id', 'arrow')
     .attr('viewBox', '0 -5 10 10')
@@ -439,16 +506,41 @@ function renderConnections(group, connections, processes, options) {
     .append('path')
     .attr('d', 'M0,-5L10,0L0,5')
     .attr('fill', '#555');
+    
+  // Red arrow marker for rework connections
+  defs.append('marker')
+    .attr('id', 'arrow-red')
+    .attr('viewBox', '0 -5 10 10')
+    .attr('refX', 8)
+    .attr('refY', 0)
+    .attr('markerWidth', 6)
+    .attr('markerHeight', 6)
+    .attr('orient', 'auto')
+    .append('path')
+    .attr('d', 'M0,-5L10,0L0,5')
+    .attr('fill', '#e53e3e');
 }
 
 /**
  * Renders metrics labels for processes
  * @param {Object} group - D3 selection for the group to render into
  * @param {Array<ProcessBlock>} processes - Process blocks
+ * @param {Array<Connection>} connections - Connections between processes
  * @param {Object} options - Rendering options
  */
-function renderMetricsLabels(group, processes, options) {
+function renderMetricsLabels(group, processes, connections, options) {
   const { blockWidth, blockHeight } = options;
+  
+  // Create a map of incoming connections to each process
+  const incomingConnections = {};
+  
+  // Collect all incoming connections and their wait times
+  connections.forEach(connection => {
+    if (!incomingConnections[connection.targetId]) {
+      incomingConnections[connection.targetId] = [];
+    }
+    incomingConnections[connection.targetId].push(connection);
+  });
   
   // Create metric box groups under each process
   const metricGroups = group.selectAll('.metrics')
@@ -459,42 +551,104 @@ function renderMetricsLabels(group, processes, options) {
     .attr('data-process-id', d => d.id) // Add reference to process ID
     .attr('transform', d => `translate(${d.position.x}, ${d.position.y + blockHeight + 5})`);
   
-  // Add metric boxes
+  // Add metric boxes - make them larger to fit more metrics
   metricGroups.append('rect')
     .attr('width', blockWidth)
-    .attr('height', 40)
+    .attr('height', 60)
     .attr('rx', 2)
     .attr('ry', 2)
     .style('fill', '#f8f8f8')
     .style('stroke', '#ddd')
     .style('stroke-width', 1);
   
+  // Create separate maps for normal and rework connections
+  const normalConnections = {};
+  const reworkConnections = {};
+  
+  // Classify connections
+  connections.forEach(conn => {
+    const isRework = conn.isRework;
+    
+    if (isRework) {
+      if (!reworkConnections[conn.targetId]) {
+        reworkConnections[conn.targetId] = [];
+      }
+      reworkConnections[conn.targetId].push(conn);
+    } else {
+      if (!normalConnections[conn.targetId]) {
+        normalConnections[conn.targetId] = [];
+      }
+      normalConnections[conn.targetId].push(conn);
+    }
+  });
+  
   // Add process time metric
   metricGroups.append('text')
-    .attr('x', 5)
-    .attr('y', 15)
+    .attr('x', blockWidth / 2)
+    .attr('y', 12)
+    .attr('text-anchor', 'middle')
     .attr('class', 'metric-label')
     .style('font-size', '10px')
     .text(d => `PT: ${d.metrics.processTime || 0}`);
   
-  // Add wait time metric
-  metricGroups.append('text')
-    .attr('x', blockWidth - 5)
-    .attr('y', 15)
-    .attr('text-anchor', 'end')
-    .attr('class', 'metric-label')
-    .style('font-size', '10px')
-    .text(d => `WT: ${d.metrics.waitTime || 0}`);
-  
-  // Add cycle time (total) metric
+  // Add %C/A metric (percentage complete and accurate)
   metricGroups.append('text')
     .attr('x', blockWidth / 2)
-    .attr('y', 30)
+    .attr('y', 25)
+    .attr('text-anchor', 'middle')
+    .attr('class', 'metric-label')
+    .style('font-size', '10px')
+    .style('fill', d => {
+      const ca = d.metrics.completeAccurate || 100;
+      return ca < 90 ? '#e53e3e' : (ca < 98 ? '#f6ad55' : '#38a169');
+    })
+    .text(d => `%C/A: ${d.metrics.completeAccurate || 100}%`);
+  
+  // Add cycle time (normal path) metric
+  metricGroups.append('text')
+    .attr('x', blockWidth / 2)
+    .attr('y', 38)
     .attr('text-anchor', 'middle')
     .attr('class', 'metric-total')
     .style('font-size', '12px')
     .style('font-weight', 'bold')
-    .text(d => `CT: ${d.metrics.cycleTime || 0}`);
+    .text(d => {
+      // Get process time from the process
+      const processTime = d.metrics.processTime || 0;
+      
+      // Get wait time from any incoming connections (normal flow only)
+      let incomingWaitTime = 0;
+      if (normalConnections[d.id]) {
+        // Sum up all wait times from normal incoming connections
+        incomingWaitTime = normalConnections[d.id].reduce((sum, conn) => 
+          sum + (conn.metrics?.waitTime || 0), 0);
+      }
+      
+      // Calculate total cycle time: process time + incoming wait time
+      const totalCycleTime = processTime + incomingWaitTime;
+      
+      return `CT: ${totalCycleTime}`;
+    });
+    
+  // Add rework cycle time (if process has rework or C/A < 100%)
+  metricGroups.append('text')
+    .attr('x', blockWidth / 2)
+    .attr('y', 51)
+    .attr('text-anchor', 'middle')
+    .attr('class', 'metric-rework')
+    .style('font-size', '11px')
+    .style('font-weight', 'bold')
+    .style('fill', '#e53e3e')
+    .style('opacity', d => {
+      const hasRework = (d.metrics.reworkCycleTime > 0) || 
+                      (reworkConnections[d.id] && reworkConnections[d.id].length > 0) ||
+                      (d.metrics.completeAccurate < 100);
+      return hasRework ? 1 : 0;
+    })
+    .text(d => {
+      const reworkTime = d.metrics.reworkCycleTime || 0;
+      return reworkTime > 0 ? `RT: +${Math.round(reworkTime * 10) / 10}` : '';
+    });
 }
 
 export default {

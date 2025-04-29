@@ -1,8 +1,9 @@
 /**
  * @typedef {Object} ProcessMetrics
  * @property {number} processTime - Time required to process a single unit
- * @property {number} waitTime - Average waiting time before processing
- * @property {number} [cycleTime] - Total time (process + setup + wait)
+ * @property {number} [cycleTime] - Total time (process time + incoming wait time)
+ * @property {number} [reworkCycleTime] - Additional time when rework is needed
+ * @property {number} [completeAccurate] - Percentage of output that is complete and accurate (0-100)
  */
 
 /**
@@ -25,7 +26,6 @@
  * @param {number} [params.position.y=0] - Y coordinate
  * @param {Object} [params.metrics] - Process metrics
  * @param {number} [params.metrics.processTime=0] - Process time
- * @param {number} [params.metrics.waitTime=0] - Wait time
  * @returns {ProcessBlock} - New process block
  */
 function createProcessBlock({
@@ -33,7 +33,7 @@ function createProcessBlock({
   name,
   description = '',
   position = { x: 0, y: 0 },
-  metrics = { processTime: 0, waitTime: 0 }
+  metrics = { processTime: 0, completeAccurate: 100 }
 }) {
   return {
     id,
@@ -42,7 +42,9 @@ function createProcessBlock({
     position: { ...position },
     metrics: { 
       ...metrics,
-      cycleTime: (metrics.processTime || 0) + (metrics.waitTime || 0)
+      processTime: metrics.processTime || 0,
+      completeAccurate: metrics.completeAccurate !== undefined ? metrics.completeAccurate : 100,
+      cycleTime: (metrics.processTime || 0)
     }
   };
 }
@@ -69,10 +71,13 @@ function updateProcessBlock(process, updates) {
     // Create a new metrics object that preserves all existing metrics and adds/updates new ones
     updatedProcess.metrics = { ...process.metrics, ...updates.metrics };
     
-    // Recalculate cycle time
-    updatedProcess.metrics.cycleTime = 
-      (updatedProcess.metrics.processTime || 0) + 
-      (updatedProcess.metrics.waitTime || 0);
+    // Ensure completeAccurate is set (default to 100%)
+    if (updatedProcess.metrics.completeAccurate === undefined) {
+      updatedProcess.metrics.completeAccurate = 100;
+    }
+    
+    // Cycle time is just the process time now (wait time added in renderer)
+    updatedProcess.metrics.cycleTime = (updatedProcess.metrics.processTime || 0);
   }
   
   return updatedProcess;

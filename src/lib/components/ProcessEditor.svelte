@@ -10,13 +10,13 @@
   let name = process.name;
   let description = process.description || '';
   let processTime = process.metrics?.processTime || 0;
-  let waitTime = process.metrics?.waitTime || 0;
+  let completeAccurate = process.metrics?.completeAccurate || 100;
   
   // Form validation
   let errors = {
     name: '',
     processTime: '',
-    waitTime: ''
+    completeAccurate: ''
   };
   
   function validateForm() {
@@ -38,12 +38,12 @@
       errors.processTime = '';
     }
     
-    // Validate wait time
-    if (isNaN(waitTime) || waitTime < 0) {
-      errors.waitTime = 'Must be a non-negative number';
+    // Validate complete and accurate percentage
+    if (isNaN(completeAccurate) || completeAccurate < 0 || completeAccurate > 100) {
+      errors.completeAccurate = 'Must be a percentage (0-100)';
       isValid = false;
     } else {
-      errors.waitTime = '';
+      errors.completeAccurate = '';
     }
     
     return isValid;
@@ -60,7 +60,7 @@
       metrics: {
         ...process.metrics,
         processTime: Number(processTime),
-        waitTime: Number(waitTime)
+        completeAccurate: Number(completeAccurate)
       }
     };
     
@@ -110,18 +110,21 @@
       {/if}
     </div>
     
+    
     <div>
-      <label for="wait-time" class="block text-sm font-medium text-gray-700 mb-1">Wait Time</label>
+      <label for="complete-accurate" class="block text-sm font-medium text-gray-700 mb-1">Complete & Accurate (%)</label>
       <input
-        id="wait-time"
+        id="complete-accurate"
         type="number"
-        bind:value={waitTime}
+        bind:value={completeAccurate}
         min="0"
-        step="0.1"
+        max="100"
+        step="1"
         class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
       />
-      {#if errors.waitTime}
-        <p class="mt-1 text-sm text-red-600">{errors.waitTime}</p>
+      <p class="mt-1 text-xs text-gray-500">Percentage of output that doesn't require rework</p>
+      {#if errors.completeAccurate}
+        <p class="mt-1 text-sm text-red-600">{errors.completeAccurate}</p>
       {/if}
     </div>
     

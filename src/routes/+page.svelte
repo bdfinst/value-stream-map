@@ -26,60 +26,73 @@
       id: 'process1',
       name: 'Customer Request',
       position: { x: 50, y: 100 },
-      metrics: { processTime: 10, waitTime: 5 }
+      metrics: { processTime: 10, completeAccurate: 100 }
     });
 
     const process2 = processBlock.create({
       id: 'process2',
       name: 'Analysis',
       position: { x: 250, y: 100 },
-      metrics: { processTime: 30, waitTime: 15 }
+      metrics: { processTime: 30, completeAccurate: 90 }
     });
 
     const process3 = processBlock.create({
       id: 'process3',
       name: 'Development',
       position: { x: 450, y: 100 },
-      metrics: { processTime: 60, waitTime: 20 }
+      metrics: { processTime: 60, completeAccurate: 85 }
     });
 
     const process4 = processBlock.create({
       id: 'process4',
       name: 'Testing',
       position: { x: 650, y: 100 },
-      metrics: { processTime: 40, waitTime: 10 }
+      metrics: { processTime: 40, completeAccurate: 95 }
     });
 
     const process5 = processBlock.create({
       id: 'process5',
       name: 'Deployment',
       position: { x: 850, y: 100 },
-      metrics: { processTime: 20, waitTime: 5 }
+      metrics: { processTime: 20, completeAccurate: 98 }
     });
 
-    // Create connections between processes
+    // Create connections between processes with wait times
     const conn1 = connection.create({
       id: 'conn1',
       sourceId: 'process1',
-      targetId: 'process2'
+      targetId: 'process2',
+      metrics: { waitTime: 5 }
     });
 
     const conn2 = connection.create({
       id: 'conn2',
       sourceId: 'process2',
-      targetId: 'process3'
+      targetId: 'process3',
+      metrics: { waitTime: 15 }
     });
 
     const conn3 = connection.create({
       id: 'conn3',
       sourceId: 'process3',
-      targetId: 'process4'
+      targetId: 'process4',
+      metrics: { waitTime: 20 }
     });
 
     const conn4 = connection.create({
       id: 'conn4',
       sourceId: 'process4',
-      targetId: 'process5'
+      targetId: 'process5',
+      metrics: { waitTime: 10 }
+    });
+    
+    // Create a rework connection from Testing back to Development
+    const reworkConn = connection.create({
+      id: 'rework1',
+      sourceId: 'process4', // From Testing
+      targetId: 'process3', // Back to Development
+      metrics: { waitTime: 5 },
+      isRework: true  // Explicitly mark as rework connection
     });
 
     // Create the VSM with processes and connections
@@ -87,7 +100,7 @@
       id: 'vsm1',
       title: 'Software Development Value Stream',
       processes: [process1, process2, process3, process4, process5],
-      connections: [conn1, conn2, conn3, conn4]
+      connections: [conn1, conn2, conn3, conn4, reworkConn]
     });
   }
 
@@ -425,9 +438,12 @@
   {#if storeValue && storeValue.vsm}
     <div class="mt-8">
       <h2 class="text-2xl text-gray-700 mb-4">Value Stream Metrics</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      
+      <!-- Best case metrics -->
+      <h3 class="text-lg text-gray-600 mb-2 font-semibold">Best Case (No Rework)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-gray-50 p-4 rounded-md text-center">
-          <h3 class="text-sm text-gray-500 font-medium">Total Lead Time</h3>
+          <h3 class="text-sm text-gray-500 font-medium">Best Case Lead Time</h3>
           <p class="text-2xl font-bold mt-2">{storeValue.vsm.metrics.totalLeadTime}</p>
         </div>
         <div class="bg-gray-50 p-4 rounded-md text-center">
@@ -437,6 +453,25 @@
         <div class="bg-gray-50 p-4 rounded-md text-center">
           <h3 class="text-sm text-gray-500 font-medium">Value-Added Ratio</h3>
           <p class="text-2xl font-bold mt-2">{(storeValue.vsm.metrics.valueAddedRatio * 100).toFixed(1)}%</p>
+        </div>
+      </div>
+      
+      <!-- Worst case metrics -->
+      <h3 class="text-lg text-gray-600 mb-2 font-semibold">Worst Case (With Rework)</h3>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-red-50 p-4 rounded-md text-center">
+          <h3 class="text-sm text-gray-500 font-medium">Worst Case Lead Time</h3>
+          <p class="text-2xl font-bold mt-2">{storeValue.vsm.metrics.worstCaseLeadTime || storeValue.vsm.metrics.totalLeadTime}</p>
+        </div>
+        <div class="bg-red-50 p-4 rounded-md text-center">
+          <h3 class="text-sm text-gray-500 font-medium">Total Rework Time</h3>
+          <p class="text-2xl font-bold mt-2">{storeValue.vsm.metrics.totalReworkTime || 0}</p>
+        </div>
+        <div class="bg-red-50 p-4 rounded-md text-center">
+          <h3 class="text-sm text-gray-500 font-medium">Rework Impact</h3>
+          <p class="text-2xl font-bold mt-2">{storeValue.vsm.metrics.totalReworkTime ? 
+              `+${((storeValue.vsm.metrics.totalReworkTime / storeValue.vsm.metrics.totalLeadTime) * 100).toFixed(1)}%` : 
+              '0%'}</p>
         </div>
       </div>
     </div>

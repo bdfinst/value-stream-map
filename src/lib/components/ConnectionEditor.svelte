@@ -13,6 +13,7 @@
   // Create local copies of connection data for editing
   let sourceId = connection.sourceId;
   let targetId = connection.targetId;
+  let waitTime = connection.metrics?.waitTime || 0;
   
   // Form validation
   let errors = {};
@@ -20,8 +21,16 @@
   function validateForm() {
     const connectionData = {
       sourceId,
-      targetId
+      targetId,
+      metrics: { waitTime }
     };
+    
+    // Convert waitTime to number
+    waitTime = Number(waitTime);
+    if (isNaN(waitTime) || waitTime < 0) {
+      errors = { ...errors, 'metrics.waitTime': 'Wait time must be a positive number' };
+      return false;
+    }
     
     const result = validateConnection(connectionData);
     errors = result.errors;
@@ -36,7 +45,11 @@
     const updatedConnection = {
       ...connection,
       sourceId,
-      targetId
+      targetId,
+      metrics: {
+        ...(connection.metrics || {}),
+        waitTime: Number(waitTime)
+      }
     };
     
     onSave(updatedConnection);
@@ -80,6 +93,20 @@
       </select>
       {#if errors.targetId}
         <p class="mt-1 text-sm text-red-600">{errors.targetId}</p>
+      {/if}
+    </div>
+    
+    <div>
+      <label for="wait-time" class="block text-sm font-medium text-gray-700 mb-1">Wait Time</label>
+      <input 
+        type="number"
+        id="wait-time"
+        bind:value={waitTime}
+        min="0"
+        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+      />
+      {#if errors['metrics.waitTime']}
+        <p class="mt-1 text-sm text-red-600">{errors['metrics.waitTime']}</p>
       {/if}
     </div>
     
