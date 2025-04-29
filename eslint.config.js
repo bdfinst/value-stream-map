@@ -1,26 +1,48 @@
-import prettier from 'eslint-config-prettier';
 import js from '@eslint/js';
-import { includeIgnoreFile } from '@eslint/compat';
-import svelte from 'eslint-plugin-svelte';
+import eslintConfigPrettier from 'eslint-config-prettier';
+import eslintPluginSvelte from 'eslint-plugin-svelte';
 import globals from 'globals';
-import { fileURLToPath } from 'node:url';
-import svelteConfig from './svelte.config.js';
-
-const gitignorePath = fileURLToPath(new URL('./.gitignore', import.meta.url));
 
 export default [
-	includeIgnoreFile(gitignorePath),
 	js.configs.recommended,
-	...svelte.configs.recommended,
-	prettier,
-	...svelte.configs.prettier,
+	eslintConfigPrettier,
+	...eslintPluginSvelte.configs['flat/prettier'],
+
 	{
-		languageOptions: {
-			globals: { ...globals.browser, ...globals.node }
-		}
+		ignores: [
+			'build/**',
+			'node_modules/**',
+			'coverage/**',
+			'.svelte-kit/**',
+			'package/*',
+			'.env',
+			'.env.*',
+			'pnpm-lock.yaml',
+			'package-lock.json',
+			'yarn.lock',
+			'html/**',
+			'tests/**/*.test.js',
+			'storybook-static/**',
+			'.netlify/**'
+		]
 	},
+
 	{
-		files: ['**/*.svelte', '**/*.svelte.js'],
-		languageOptions: { parserOptions: { svelteConfig } }
+		files: ['**/*.js', '**/*.svelte'],
+
+		languageOptions: {
+			ecmaVersion: 'latest',
+			sourceType: 'module',
+			globals: {
+				...globals.browser
+			}
+		},
+
+		rules: {
+			'svelte/no-at-html-tags': 'off',
+			'svelte/no-target-blank': ['error'],
+			'prefer-template': 'error',
+			'tailwindcss/no-custom-classname': [0]
+		}
 	}
 ];
