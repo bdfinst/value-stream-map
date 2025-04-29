@@ -10,6 +10,7 @@ implement this visualization approach effectively.
 - Do not use typescript
 - Use vitest with BDD format
 - Always implement using TDD
+  - You must write one test, and only one test, and it needs to fail, then implement the passing function
 - Use JSDocs for type checking
 
 ## D3.js Value Stream Mapping Implementation Plan

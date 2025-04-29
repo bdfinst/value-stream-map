@@ -1,20 +1,24 @@
 {
 	"name": "value-stream-map",
-	"private": true,
 	"version": "0.0.1",
+	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
 		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
+		"dev": "vite dev",
 		"format": "prettier --write .",
 		"lint": "prettier --check . && eslint .",
-		"test:unit": "vitest",
+		"prepare": "svelte-kit sync || echo ''",
+		"preview": "vite preview",
+		"start": "vite dev",
 		"test": "npm run test:unit -- --run && npm run test:e2e",
-		"test:e2e": "playwright test"
+		"test:e2e": "playwright test",
+		"test:unit": "vitest"
+	},
+	"dependencies": {
+		"d3": "^7.9.0"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.2.5",
