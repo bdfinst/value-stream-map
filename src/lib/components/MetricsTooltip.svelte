@@ -87,28 +87,12 @@
 
 						<!-- Calculation breakdown -->
 						<div class="mt-1 rounded bg-red-50 p-1 text-xs text-[var(--color-action-red)]">
-							<strong>Rework Calculation:</strong>
+							<strong>Calculation:</strong>
 
 							{#if incomingRework.length > 0}
 								<!-- If this process receives explicit rework -->
 								{#each incomingRework as rework}
 									{#if vsm.processes.find((p) => p.id === rework.sourceId)}
-										<p>
-											<strong>Explicit rework from:</strong>
-											{vsm.processes.find((p) => p.id === rework.sourceId)?.name}
-										</p>
-										<p>
-											<strong>Source C/A:</strong>
-											{vsm.processes.find((p) => p.id === rework.sourceId)?.metrics
-												?.completeAccurate || 100}%
-										</p>
-										<p>
-											<strong>Probability:</strong>
-											{(100 -
-												(vsm.processes.find((p) => p.id === rework.sourceId)?.metrics
-													?.completeAccurate || 100)) /
-												(100).toFixed(2)}
-										</p>
 										<p>
 											<strong>Rework path:</strong> Rework Wait ({rework.metrics?.waitTime || 0}) +
 											This Process ({processTime}) + Next Process Path
@@ -150,11 +134,10 @@
 									</p>
 								{/if}
 							{:else if outgoingRework.length > 0}
-								<!-- If this sends explicit rework elsewhere -->
-								{#each outgoingRework as rework}
+								] {#each outgoingRework as rework}
 									{#if vsm.processes.find((p) => p.id === rework.targetId)}
 										<p>
-											<strong>Sends explicit rework to:</strong>
+											<strong>Sends rework to:</strong>
 											{vsm.processes.find((p) => p.id === rework.targetId)?.name}
 										</p>
 										<p>
@@ -183,12 +166,10 @@
 
 			{#if incomingRework.length > 0 || outgoingRework.length > 0 || (completeAccurate < 100 && processIndex > 0) || process.id !== sortedProcesses[0]?.id}
 				<div>
-					<h4 class="text-sm font-semibold">Rework Connections:</h4>
-
-					<!-- Receiving explicit rework -->
 					{#if incomingRework.length > 0}
+						<!-- Receiving explicit rework -->
 						<p class="text-sm">
-							<span class="font-semibold">Receiving from:</span>
+							<span class="font-semibold">Rework from:</span>
 							{incomingRework
 								.map((conn) => {
 									const source = vsm.processes.find((p) => p.id === conn.sourceId);
@@ -201,7 +182,7 @@
 					<!-- Sending explicit rework -->
 					{#if outgoingRework.length > 0}
 						<p class="text-sm">
-							<span class="font-semibold">Sending to:</span>
+							<span class="font-semibold">Rejected from:</span>
 							{outgoingRework
 								.map((conn) => {
 									const target = vsm.processes.find((p) => p.id === conn.targetId);
@@ -209,21 +190,6 @@
 								})
 								.join(', ')}
 						</p>
-					{/if}
-
-					<!-- This process may reject work -->
-					{#if completeAccurate < 100}
-						<p class="text-sm text-[var(--color-action-red)]">
-							<span class="font-semibold">Next Process:</span>
-							C/A {completeAccurate}% ({100 - completeAccurate}% rejection rate)
-						</p>
-
-						{#if !outgoingRework.length && processIndex < sortedProcesses.length - 1}
-							<p class="text-sm text-[var(--color-action-red)]">
-								<span class="font-semibold">Rework flow:</span>
-								Rejected work returns to this process
-							</p>
-						{/if}
 					{/if}
 				</div>
 			{/if}
