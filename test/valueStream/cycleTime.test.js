@@ -353,7 +353,16 @@ describe('VSM Cycle Time Calculations', () => {
 
 		it('calculates base lead time correctly for all steps without rework', () => {
 			// Create a VSM with steps A, B, C, D (no rework)
+			// NOTE: For this specific test, we want to test the lead time calculation without rework,
+			// even though the steps have C/A < 100%. In a real VSM, steps with C/A < 100% would have
+			// implicit rework paths.
 			const { steps, connections } = createValueStreamWithSteps();
+
+			// Override C/A to 100% for this specific test
+			steps.stepA.metrics.completeAccurate = 100;
+			steps.stepB.metrics.completeAccurate = 100;
+			steps.stepC.metrics.completeAccurate = 100;
+			steps.stepD.metrics.completeAccurate = 100;
 
 			const vsm = createVSM.create({
 				id: 'vsm',
@@ -471,6 +480,80 @@ describe('VSM Cycle Time Calculations', () => {
 
 			// Check if the calculated worst case and rework times are what we expect
 			expect(vsm.metrics.worstCaseLeadTime).toBeCloseTo(expectedWorstCase, 1);
+		});
+	});
+
+	describe('Implicit Rework Connections', () => {
+		it('should assume rework to previous step when C/A < 100% and no explicit rework connection exists', () => {
+			// Create a VSM with 3 processes (each with PCA < 100%) but no explicit rework connections
+			const p1 = processBlock.create({
+				id: 'process1',
+				name: 'Process 1',
+				position: { x: 100, y: 100 },
+				metrics: { processTime: 10, completeAccurate: 90 } // 10% rework
+			});
+
+			const p2 = processBlock.create({
+				id: 'process2',
+				name: 'Process 2',
+				position: { x: 250, y: 100 },
+				metrics: { processTime: 20, completeAccurate: 80 } // 20% rework
+			});
+
+			const p3 = processBlock.create({
+				id: 'process3',
+				name: 'Process 3',
+				position: { x: 400, y: 100 },
+				metrics: { processTime: 30, completeAccurate: 70 } // 30% rework
+			});
+
+			// Create forward connections
+			const c1 = connection.create({
+				id: 'conn1',
+				sourceId: 'process1',
+				targetId: 'process2',
+				metrics: { waitTime: 5 }
+			});
+
+			const c2 = connection.create({
+				id: 'conn2',
+				sourceId: 'process2',
+				targetId: 'process3',
+				metrics: { waitTime: 10 }
+			});
+
+			// Create VSM with NO explicit rework connections
+			const vsm = createVSM.create({
+				id: 'vsm',
+				title: 'Implicit Rework VSM',
+				processes: [p1, p2, p3],
+				connections: [c1, c2]
+			});
+
+			// Process 1 should not have implicit rework (no previous step)
+			// Process 2 should have implicit rework to Process 1
+			// Process 3 should have implicit rework to Process 2
+
+			// Check that Process 2 has rework time reflecting rework to Process 1
+			// Rework path: Process 2 -> Process 1 -> Process 2
+			// Rework times: Process 1 (10) + Connection (5) + Process 2 (20) = 35
+			// With 20% probability: 35 * 0.2 = 7
+			expect(vsm.metrics.reworkCycleTimeByProcess.process2).toBeCloseTo(7, 1);
+
+			// Check that Process 3 has rework time reflecting rework to Process 2
+			// Rework path: Process 3 -> Process 2 -> Process 3
+			// Rework times: Process 2 (20) + Connection (10) + Process 3 (30) = 60
+			// With 30% probability: 60 * 0.3 = 18
+			expect(vsm.metrics.reworkCycleTimeByProcess.process3).toBeCloseTo(18, 1);
+
+			// Total rework time should be the sum of the weighted rework times
+			const expectedTotalRework = 7 + 18;
+			expect(vsm.metrics.totalReworkTime).toBeCloseTo(expectedTotalRework, 1);
+
+			// Worst case lead time should be base lead time + full (unweighted) rework
+			const baseLead = 10 + 5 + 20 + 10 + 30; // 75
+			const fullRework = 35 + 60; // Full unweighted rework
+			expect(vsm.metrics.worstCaseLeadTime).toBeCloseTo(baseLead + fullRework, 1);
 		});
 	});
 });
