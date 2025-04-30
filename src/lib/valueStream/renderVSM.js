@@ -658,7 +658,7 @@ function renderMetricsLabels(group, processes, connections, options) {
 		.style('font-size', '10px')
 		.text((d) => `PT: ${formatDecimal(d.metrics.processTime || 0)}`);
 
-	// Add %C/A metric (percentage complete and accurate)
+	// Add %C/A metric (percentage complete and accurate) - only for non-last processes
 	metricGroups
 		.append('text')
 		.attr('x', blockWidth / 2)
@@ -669,6 +669,11 @@ function renderMetricsLabels(group, processes, connections, options) {
 		.style('fill', (d) => {
 			const ca = d.metrics.completeAccurate || 100;
 			return ca < 90 ? '#e53e3e' : ca < 98 ? '#f6ad55' : '#38a169';
+		})
+		.style('display', (d) => {
+			// Hide C/A for last processes (no outgoing normal connections)
+			const isLastProcess = !connections.some((conn) => conn.sourceId === d.id && !conn.isRework);
+			return isLastProcess ? 'none' : 'inline';
 		})
 		.text((d) => `%C/A: ${d.metrics.completeAccurate || 100}%`);
 
@@ -712,6 +717,13 @@ function renderMetricsLabels(group, processes, connections, options) {
 		.style('font-weight', 'bold')
 		.style('fill', '#e53e3e')
 		.style('opacity', (d) => {
+			// Check if this is the last process
+			const isLastProcess = !connections.some((conn) => conn.sourceId === d.id && !conn.isRework);
+
+			// If it's the last process, always hide rework metrics
+			if (isLastProcess) return 0;
+
+			// Otherwise, show based on whether there's rework
 			const hasRework =
 				d.metrics.reworkCycleTime > 0 ||
 				(reworkConnections[d.id] && reworkConnections[d.id].length > 0) ||

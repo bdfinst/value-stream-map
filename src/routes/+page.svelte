@@ -109,8 +109,13 @@
 	function handleProcessEdit(process) {
 		console.log('Process edit:', process);
 
-		// Store current process for editing
-		currentProcess = process;
+		// Determine if this is the last process (no outgoing normal connections)
+		const isLastProcess = !storeValue.vsm.connections.some(
+			(conn) => conn.sourceId === process.id && !conn.isRework
+		);
+
+		// Store current process for editing along with last process flag
+		currentProcess = { ...process, isLastProcess };
 
 		// Show edit modal
 		showProcessModal = true;
@@ -121,12 +126,16 @@
 		// Check if this is a new process (not yet in the store)
 		const isNewProcess = !storeValue.vsm.processes.some((p) => p.id === updatedProcess.id);
 
+		// Remove the isLastProcess flag as it's not part of the actual process model
+		// eslint-disable-next-line no-unused-vars
+		const { isLastProcess, ...processToSave } = updatedProcess;
+
 		if (isNewProcess) {
 			// Add new process to the store
-			vsmStore.addProcess(updatedProcess);
+			vsmStore.addProcess(processToSave);
 		} else {
 			// Update existing process
-			vsmStore.updateProcess(updatedProcess.id, updatedProcess);
+			vsmStore.updateProcess(processToSave.id, processToSave);
 		}
 
 		// Close the modal
@@ -311,7 +320,12 @@
 <!-- Modals -->
 <Modal show={showProcessModal} title="Edit Process" onClose={cancelEditing}>
 	{#if currentProcess}
-		<ProcessEditor process={currentProcess} onSave={handleProcessUpdate} onCancel={cancelEditing} />
+		<ProcessEditor
+			process={currentProcess}
+			isLastProcess={currentProcess.isLastProcess}
+			onSave={handleProcessUpdate}
+			onCancel={cancelEditing}
+		/>
 	{/if}
 </Modal>
 

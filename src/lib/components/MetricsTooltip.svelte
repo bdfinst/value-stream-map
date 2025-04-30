@@ -44,10 +44,15 @@
 		(conn) => conn.sourceId === process.id && conn.isRework
 	);
 
+	// Determine if this is the last process (no outgoing normal connections)
+	$: isLastProcess = !vsm.connections.some(
+		(conn) => conn.sourceId === process.id && !conn.isRework
+	);
+
 	// Calculate metrics
 	$: processTime = process.metrics?.processTime || 0;
 	$: cycleTime = processTime + waitTime;
-	$: completeAccurate = process.metrics?.completeAccurate || 100;
+	$: completeAccurate = !isLastProcess ? process.metrics?.completeAccurate || 100 : 100;
 	$: reworkCycleTime = process.metrics?.reworkCycleTime || 0;
 	$: reworkProbability = (100 - completeAccurate) / 100;
 </script>
@@ -70,7 +75,7 @@
 				</p>
 			</div>
 
-			{#if reworkCycleTime > 0 || completeAccurate < 100}
+			{#if (reworkCycleTime > 0 || completeAccurate < 100) && !isLastProcess}
 				<div>
 					<h4 class="text-sm font-semibold text-[var(--color-action-red)]">Rework Impact:</h4>
 					<p class="text-sm text-[var(--color-action-red)]">

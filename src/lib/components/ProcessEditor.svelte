@@ -5,6 +5,8 @@
 	export let onSave;
 	/** @type {Function} */
 	export let onCancel;
+	/** @type {boolean} */
+	export let isLastProcess = false;
 
 	// Create local copies of process data for editing
 	let name = process.name;
@@ -119,26 +121,28 @@
 			{/if}
 		</div>
 
-		<div>
-			<label
-				for="complete-accurate"
-				class="mb-1 block text-sm font-medium text-[var(--color-defense-dark)]"
-				>Complete & Accurate (%)</label
-			>
-			<input
-				id="complete-accurate"
-				type="number"
-				bind:value={completeAccurate}
-				min="0"
-				max="100"
-				step="1"
-				class="w-full rounded-md border border-[var(--color-light-gray)] px-3 py-2 shadow-sm focus:border-[var(--color-mission-blue)] focus:ring-[var(--color-mission-blue)] focus:outline-none"
-			/>
-			<p class="mt-1 text-xs text-gray-500">Percentage of output that doesn't require rework</p>
-			{#if errors.completeAccurate}
-				<p class="mt-1 text-sm text-red-600">{errors.completeAccurate}</p>
-			{/if}
-		</div>
+		{#if !isLastProcess}
+			<div>
+				<label
+					for="complete-accurate"
+					class="mb-1 block text-sm font-medium text-[var(--color-defense-dark)]"
+					>Complete & Accurate (%)</label
+				>
+				<input
+					id="complete-accurate"
+					type="number"
+					bind:value={completeAccurate}
+					min="0"
+					max="100"
+					step="1"
+					class="w-full rounded-md border border-[var(--color-light-gray)] px-3 py-2 shadow-sm focus:border-[var(--color-mission-blue)] focus:ring-[var(--color-mission-blue)] focus:outline-none"
+				/>
+				<p class="mt-1 text-xs text-gray-500">Percentage of output that doesn't require rework</p>
+				{#if errors.completeAccurate}
+					<p class="mt-1 text-sm text-red-600">{errors.completeAccurate}</p>
+				{/if}
+			</div>
+		{/if}
 
 		<div class="flex justify-end space-x-2">
 			<button
