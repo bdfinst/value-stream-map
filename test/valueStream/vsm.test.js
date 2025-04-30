@@ -30,7 +30,7 @@ describe('ValueStreamMap', () => {
 				title: 'Test VSM'
 			});
 
-			expect(vsm).toEqual({
+			expect(vsm).toMatchObject({
 				id: 'vsm1',
 				title: 'Test VSM',
 				processes: [],
@@ -43,6 +43,10 @@ describe('ValueStreamMap', () => {
 					worstCaseLeadTime: 0
 				}
 			});
+
+			// Verify cycleTimeByProcess and reworkCycleTimeByProcess exist
+			expect(vsm.metrics.cycleTimeByProcess).toEqual({});
+			expect(vsm.metrics.reworkCycleTimeByProcess).toEqual({});
 		});
 
 		it('creates a VSM with processes and connections', () => {
