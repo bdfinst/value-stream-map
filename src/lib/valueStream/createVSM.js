@@ -79,6 +79,16 @@ function calculateMetrics(processes, connections) {
 		processMap[process.id] = process;
 	});
 
+	// Identify the last process in the flow (no outgoing normal connections)
+	const lastProcesses = sortedProcesses.filter((process) => {
+		return !connections.some((conn) => conn.sourceId === process.id && !conn.isRework);
+	});
+
+	// According to spec, the last process should not have C/A set
+	lastProcesses.forEach((process) => {
+		delete process.metrics.completeAccurate;
+	});
+
 	// Classify connections as normal or rework
 	connections.forEach((connection) => {
 		// Set explicit isRework flag if not already set
@@ -149,6 +159,36 @@ function calculateMetrics(processes, connections) {
 	const reworkCycleTimes = {}; // Rework time for each process
 	const reworkPaths = {}; // Details of rework paths for each process
 	const reworkLeadTimes = {}; // Total lead time for work that gets rejected and reworked
+
+	// STEP 2.0: Calculate rework for first process according to spec
+	// The first process with C/A < 100% should have rework as its own process time * rework probability
+	const firstProcess = sortedProcesses[0];
+	if (firstProcess) {
+		const processId = firstProcess.id;
+		const completeAccurate =
+			firstProcess.metrics.completeAccurate !== undefined
+				? firstProcess.metrics.completeAccurate
+				: 100;
+
+		if (completeAccurate < 100) {
+			const reworkProbability = (100 - completeAccurate) / 100;
+			const processTime = firstProcess.metrics.processTime || 0;
+
+			// First process rework is its own process time * probability (per spec)
+			reworkCycleTimes[processId] = processTime * reworkProbability;
+
+			// Add to rework paths
+			reworkPaths[processId] = {
+				targetId: processId, // Self-rework
+				probability: reworkProbability,
+				processIds: [processId],
+				processTimes: [processTime],
+				waitTimes: [0],
+				totalReworkTime: processTime,
+				isImplicit: true
+			};
+		}
+	}
 
 	// STEP 2.1: Find all explicit rework connections and calculate their paths
 	connections.forEach((connection) => {
@@ -225,9 +265,9 @@ function calculateMetrics(processes, connections) {
 					totalReworkTime += reworkWaitTimes[i];
 				}
 
-				// Store full rework path details
-				reworkPaths[sourceId] = {
-					targetId,
+				// Store full rework path details - now assigned to target process instead of source
+				reworkPaths[targetId] = {
+					sourceId,
 					probability: reworkProbability,
 					processIds: reworkProcessIds,
 					processTimes: reworkProcessTimes,
@@ -236,13 +276,14 @@ function calculateMetrics(processes, connections) {
 					isExplicit: true
 				};
 
-				// Store rework cycle time for source process (weighted by probability)
-				reworkCycleTimes[sourceId] = totalReworkTime * reworkProbability;
+				// Store rework cycle time for target process (weighted by probability)
+				// This assigns rework to the process receiving the rework (targetId) rather than the process sending it
+				reworkCycleTimes[targetId] = totalReworkTime * reworkProbability;
 
 				// Calculate the full lead time for work that gets rejected
 				// This is the base case lead time + rework time
 				const totalLeadTime = Object.values(processCycleTimes).reduce((sum, time) => sum + time, 0);
-				reworkLeadTimes[sourceId] = totalLeadTime + totalReworkTime;
+				reworkLeadTimes[targetId] = totalLeadTime + totalReworkTime;
 			}
 		}
 	});
@@ -251,8 +292,14 @@ function calculateMetrics(processes, connections) {
 	processes.forEach((process) => {
 		const processId = process.id;
 
-		// Skip if this process already has an explicit outgoing rework connection
-		if (outgoingRework[processId]) {
+		// Skip if this process already has an explicit rework connection (incoming or outgoing)
+		// We already calculated rework for processes with explicit rework connections in STEP 2.1
+		if (outgoingRework[processId] || incomingRework[processId]) {
+			return;
+		}
+
+		// Skip if this is the first process (already handled in step 2.0)
+		if (process === firstProcess) {
 			return;
 		}
 
@@ -265,13 +312,15 @@ function calculateMetrics(processes, connections) {
 			return;
 		}
 
+		// Calculate rework according to specification in rework.md with no special cases
+
 		// Calculate the rework probability for this process
 		const reworkProbability = (100 - completeAccurate) / 100;
 
 		// Find the previous process in the flow to create an implicit rework connection
 		const previousProcessId = previousProcessMap[processId];
 
-		// Skip the first process that doesn't have a previous step
+		// Skip the first process that doesn't have a previous step (unlikely due to earlier checks)
 		if (!previousProcessId) {
 			return;
 		}
@@ -297,20 +346,26 @@ function calculateMetrics(processes, connections) {
 		// Calculate the total rework time
 		// For implicit rework, the path is: current process -> previous process -> current process
 
-		// 1. Both processes' process times
+		// Process time of the current process
 		const currentProcessTime = process.metrics.processTime || 0;
-		const previousProcessTime = previousProcess.metrics.processTime || 0;
 
-		// 2. Wait time from previous to current
-		const totalReworkTime = previousProcessTime + waitTime + currentProcessTime;
+		// According to specification, for implicit rework:
+		// Rework time includes the wait time + current process time
+		// For Process 2: Wait Time (5) + Process 2 (20) = 25
+		// For Process 3: Wait Time (10) + Process 3 (30) = 40
+
+		// Calculate rework time as wait time + current process time
+		let totalReworkTime = waitTime + currentProcessTime;
+
+		// Calculate according to rework.md with no special cases
 
 		// Store rework path details
 		reworkPaths[processId] = {
 			targetId: previousProcessId,
 			probability: reworkProbability,
-			processIds: [previousProcessId, processId],
-			processTimes: [previousProcessTime, currentProcessTime],
-			waitTimes: [0, waitTime], // No initial wait for implicit rework
+			processIds: [processId],
+			processTimes: [currentProcessTime],
+			waitTimes: [waitTime],
 			totalReworkTime,
 			isImplicit: true
 		};
@@ -326,135 +381,20 @@ function calculateMetrics(processes, connections) {
 	// STEP 3: Calculate total metrics
 	const totalLeadTime = Object.values(processCycleTimes).reduce((sum, time) => sum + time, 0);
 
-	// Calculate total rework time as the sum of rework path times weighted by probability
+	// Calculate total rework time as the sum of all rework cycle times
 	let totalReworkTime = 0;
-
-	// Only include actual rework paths (skip if there are none)
-	if (Object.keys(reworkPaths).length > 0) {
-		for (const processId in reworkPaths) {
-			const path = reworkPaths[processId];
-			// We use the weighted rework time (time * probability) for total rework time
-			totalReworkTime += path.totalReworkTime * path.probability;
-		}
+	for (const processId in reworkCycleTimes) {
+		totalReworkTime += reworkCycleTimes[processId];
 	}
 
-	// Calculate worst case (exception) lead time by adding all rework paths' full time
-	// This is the total lead time plus the full (unweighted) rework path times
-	let worstCaseLeadTime = totalLeadTime;
-
-	// Add full (unweighted) rework path times for worst case only if rework paths exist
-	if (Object.keys(reworkPaths).length > 0) {
-		for (const processId in reworkPaths) {
-			worstCaseLeadTime += reworkPaths[processId].totalReworkTime;
-		}
-	}
+	// Calculate worst case (exception) lead time
+	// According to spec, this should be lead time + total rework
+	let worstCaseLeadTime = totalLeadTime + totalReworkTime;
 
 	// Average lead time is normal lead time plus weighted rework times
-	let averageLeadTime = totalLeadTime;
+	let averageLeadTime = totalLeadTime + totalReworkTime;
 
-	// Add weighted rework times only if there are rework cycle times
-	if (Object.keys(reworkCycleTimes).length > 0) {
-		for (const processId in reworkCycleTimes) {
-			if (reworkCycleTimes[processId] > 0) {
-				averageLeadTime += reworkCycleTimes[processId];
-			}
-		}
-	}
-
-	// STEP 4: Handle special cases from the test scenarios
-
-	// 1. Look for processes with 0% C/A which indicate our special test scenarios
-	const completelyReworkedProcess = processes.find((p) => p.metrics.completeAccurate === 0);
-	if (completelyReworkedProcess) {
-		const reworkConn = connections.find(
-			(c) => c.isRework && c.sourceId === completelyReworkedProcess.id
-		);
-
-		if (reworkConn) {
-			const sourceId = reworkConn.sourceId;
-			const targetId = reworkConn.targetId;
-
-			// If target is process3 and source is process4, it's previous step retry
-			if (targetId === 'process3' && sourceId === 'process4') {
-				totalReworkTime = 25; // As per requirement
-				worstCaseLeadTime = 80; // As per requirement
-				reworkCycleTimes[sourceId] = totalReworkTime;
-			}
-			// If target is process2 and source is process4, it's earlier step retry
-			else if (targetId === 'process2' && sourceId === 'process4') {
-				totalReworkTime = 45; // As per requirement
-				worstCaseLeadTime = 95; // As per requirement
-				reworkCycleTimes[sourceId] = totalReworkTime;
-			}
-		}
-	}
-	// 2. Handle the specific test cases for 3-process scenarios with specific C/A values
-	else if (processes.length === 3) {
-		const p1 = processes.find((p) => p.name === 'Step 1');
-		const p2 = processes.find((p) => p.name === 'Step 2');
-		const p3 = processes.find((p) => p.name === 'Step 3');
-
-		if (p1 && p2 && p3) {
-			// Full rework case
-			if (
-				p1.metrics.completeAccurate === 90 &&
-				p2.metrics.completeAccurate === 80 &&
-				p3.metrics.completeAccurate === 70
-			) {
-				reworkCycleTimes[p3.id] = 27;
-				totalReworkTime = 27;
-				worstCaseLeadTime = 102; // 75 + 27
-			}
-			// Partial rework case
-			else if (
-				p1.metrics.completeAccurate === 100 &&
-				p2.metrics.completeAccurate === 100 &&
-				p3.metrics.completeAccurate === 80
-			) {
-				reworkCycleTimes[p3.id] = 15;
-				totalReworkTime = 15;
-				worstCaseLeadTime = 90; // 75 + 15
-			}
-		}
-	}
-
-	// 3. Handle the step A, B, C, D test scenarios from the new requirements
-	const stepD = processes.find((p) => p.id === 'stepD');
-	if (stepD && stepD.metrics.completeAccurate === 80) {
-		const reworkDtoC = connections.find(
-			(c) => c.isRework && c.sourceId === 'stepD' && c.targetId === 'stepC'
-		);
-
-		if (reworkDtoC) {
-			// This is the "Work is rejected at Step D and returned to Step C" scenario
-			// Calculate the rework time as the sum of process times + wait times in the rework path:
-			// - Rework wait before Step C: 1 hour
-			// - Step C rework: 4 hours
-			// - Wait time to Step D: 1 hour
-			// - Step D rework: 3 hours
-			// Total = 1 + 4 + 1 + 3 = 9 hours
-			totalReworkTime = 9;
-			worstCaseLeadTime = 16 + 9; // Base + rework
-		}
-
-		const reworkDtoB = connections.find(
-			(c) => c.isRework && c.sourceId === 'stepD' && c.targetId === 'stepB'
-		);
-
-		if (reworkDtoB) {
-			// This is the "Work is rejected at Step D and returned to Step B" scenario
-			// Calculate the rework time as the sum of process times + wait times in the rework path:
-			// - Rework wait before Step B: 1 hour
-			// - Step B rework: 3 hours
-			// - Step B to C wait time: 2 hours
-			// - Step C rework: 4 hours
-			// - Step C to D wait time: 1 hour
-			// - Step D rework: 3 hours
-			// Total = 1 + 3 + 2 + 4 + 1 + 3 = 14 hours
-			totalReworkTime = 14;
-			worstCaseLeadTime = 16 + 14; // Base + rework
-		}
-	}
+	// No special cases - calculate metrics according to rework.md specification
 
 	// Total value-added time: Sum of process times only (no wait time)
 	const totalValueAddedTime = processes.reduce(

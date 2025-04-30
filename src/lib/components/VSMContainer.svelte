@@ -1,5 +1,6 @@
 <script>
 	import ZoomControls from './ZoomControls.svelte';
+	import MetricsTooltip from './MetricsTooltip.svelte';
 	import { onMount } from 'svelte';
 
 	export let zoomController = {};
@@ -8,6 +9,12 @@
 	export let renderVSMWithSelection;
 
 	let container;
+
+	// Tooltip state
+	let tooltipVisible = false;
+	let tooltipX = 0;
+	let tooltipY = 0;
+	let activeProcess = null;
 
 	onMount(() => {
 		if (typeof bindContainer === 'function') {
@@ -47,8 +54,44 @@
 		class="w-full overflow-hidden rounded-md border border-[var(--color-tech-cyan)] bg-[var(--color-unicorn-white)] shadow-lg ring-1 ring-[var(--color-tech-cyan-30)]"
 		style="resize: both; min-height: 400px;"
 	>
-		<div bind:this={container} class="h-full w-full" style="min-height: 400px;"></div>
+		<div
+			bind:this={container}
+			class="relative h-full w-full"
+			style="min-height: 400px;"
+			role="application"
+			aria-label="Value Stream Map canvas"
+			on:mousemove={(e) => {
+				// Check if we're hovering over a process
+				const processElement = e.target.closest('.process');
+				if (processElement) {
+					const processId = processElement.getAttribute('data-id');
+					const process = storeValue.vsm.processes.find((p) => p.id === processId);
+
+					if (process) {
+						activeProcess = process;
+						tooltipVisible = true;
+						tooltipX = e.clientX;
+						tooltipY = e.clientY;
+					}
+				} else {
+					tooltipVisible = false;
+				}
+			}}
+			on:mouseleave={() => {
+				tooltipVisible = false;
+			}}
+		></div>
 	</div>
 
 	<ZoomControls {zoomController} />
+
+	{#if tooltipVisible && activeProcess && storeValue.vsm}
+		<MetricsTooltip
+			process={activeProcess}
+			vsm={storeValue.vsm}
+			x={tooltipX}
+			y={tooltipY}
+			visible={tooltipVisible}
+		/>
+	{/if}
 </div>

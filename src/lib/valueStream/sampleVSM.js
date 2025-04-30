@@ -1,5 +1,5 @@
 // Internal imports
-import { connection, createVSM, processBlock } from '$lib/valueStream';
+import { connection, createVSM, processBlock } from '../valueStream';
 
 /**
  * Creates a sample value stream map with predefined processes and connections
