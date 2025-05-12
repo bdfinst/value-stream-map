@@ -12,6 +12,7 @@
 	import { createSampleVSM } from '$lib/valueStream/sampleVSM.js';
 	import { initVSMStore } from '$lib/valueStream/vsmStore.js';
 	import vsmCreator from '$lib/valueStream/createVSM.js';
+	import * as filePersistence from '$lib/valueStream/filePersistence.js';
 	import { onMount } from 'svelte';
 
 	let container;
@@ -19,6 +20,11 @@
 	let vsmStore;
 	let storeValue;
 	let zoomController = {};
+
+	// File persistence state
+	let hasUnsavedChanges = false;
+	let autoSaveTimer = null;
+	let lastSavedVSM = null;
 
 	// Modal state
 	let showProcessModal = false;
@@ -295,18 +301,171 @@
 		}, 100);
 	}
 
+	// File operations
+	async function handleSave() {
+		try {
+			if (!storeValue || !storeValue.vsm) return;
+
+			await filePersistence.saveVSM(storeValue.vsm);
+			updateSavedState(storeValue.vsm);
+		} catch (error) {
+			console.error('Error saving VSM:', error);
+			alert(`Failed to save: ${error.message}`);
+		}
+	}
+
+	async function handleSaveAs() {
+		try {
+			if (!storeValue || !storeValue.vsm) return;
+
+			const filename = prompt(
+				'Enter a name for your file:',
+				storeValue.vsm.title || 'value-stream-map'
+			);
+			if (!filename) return;
+
+			await filePersistence.saveVSMAs(storeValue.vsm, filename);
+			updateSavedState(storeValue.vsm);
+		} catch (error) {
+			console.error('Error saving VSM as:', error);
+			alert(`Failed to save: ${error.message}`);
+		}
+	}
+
+	async function handleLoad() {
+		try {
+			const loadedVSM = await filePersistence.loadVSM();
+			if (loadedVSM) {
+				// Reinitialize the store with the loaded VSM
+				vsmStore = initVSMStore(loadedVSM);
+				updateSavedState(loadedVSM);
+
+				// After loading, zoom to fit to show all processes
+				setTimeout(() => {
+					if (zoomController && zoomController.zoomFit) {
+						zoomController.zoomFit();
+					}
+				}, 100);
+			}
+		} catch (error) {
+			console.error('Error loading VSM:', error);
+			alert(`Failed to load: ${error.message}`);
+		}
+	}
+
+	function handleNewVSM() {
+		// Create a blank new VSM
+		const initialVSM = vsmCreator.create({
+			id: `vsm_${Date.now()}`,
+			title: 'Untitled Value Stream Map',
+			processes: [],
+			connections: []
+		});
+
+		// Reinitialize the store with the new VSM
+		vsmStore = initVSMStore(initialVSM);
+		updateSavedState(initialVSM);
+	}
+
+	async function handleLoadRecent(fileInfo) {
+		try {
+			// For now, just show a message that we would load the file
+			alert(`This would load the recent file: ${fileInfo.title}`);
+
+			// In a real implementation, you'd either:
+			// 1. Store the full VSM in the recent files list and load directly
+			// 2. Store a file reference and load it using File System Access API
+		} catch (error) {
+			console.error('Error loading recent VSM:', error);
+			alert(`Failed to load recent file: ${error.message}`);
+		}
+	}
+
+	// Auto-save functionality
+	function startAutoSave() {
+		if (autoSaveTimer) return;
+
+		// Set up auto-save timer (5 seconds)
+		autoSaveTimer = setInterval(async () => {
+			const autoSaveStatus = filePersistence.getAutoSaveStatus();
+
+			// Only auto-save if enabled and we have unsaved changes
+			if (autoSaveStatus.isEnabled && hasUnsavedChanges && storeValue && storeValue.vsm) {
+				try {
+					const success = await filePersistence.autoSaveVSM(storeValue.vsm);
+					if (success) {
+						updateSavedState(storeValue.vsm);
+					}
+				} catch (error) {
+					console.error('Auto-save failed:', error);
+				}
+			}
+		}, 5000);
+	}
+
+	// Update saved state
+	function updateSavedState(vsm) {
+		lastSavedVSM = JSON.parse(JSON.stringify(vsm));
+		hasUnsavedChanges = false;
+	}
+
+	// Check for unsaved changes
+	function checkUnsavedChanges() {
+		if (!lastSavedVSM || !storeValue || !storeValue.vsm) {
+			// If no save state, mark as unsaved if we have any processes
+			hasUnsavedChanges = storeValue?.vsm?.processes?.length > 0;
+			return;
+		}
+
+		hasUnsavedChanges = filePersistence.hasUnsavedChanges(storeValue.vsm);
+	}
+
 	// Bind container element
 	function bindContainer(el) {
 		container = el;
+	}
+
+	// Handle beforeunload event to warn about unsaved changes
+	function handleBeforeUnload(event) {
+		if (hasUnsavedChanges) {
+			event.preventDefault();
+			event.returnValue = '';
+		}
 	}
 
 	onMount(() => {
 		// Initialize store
 		const unsubscribe = initializeStore();
 
+		// Initialize file persistence
+		filePersistence.initialize();
+
+		// Start auto-save
+		startAutoSave();
+
+		// Set up store subscription for change detection
+		const storeSubscription = vsmStore.subscribe((value) => {
+			if (value && value.vsm) {
+				// Check for unsaved changes
+				checkUnsavedChanges();
+			}
+		});
+
+		// Set up beforeunload event listener
+		window.addEventListener('beforeunload', handleBeforeUnload);
+
 		// Return cleanup function
 		return () => {
 			unsubscribe();
+			storeSubscription();
+
+			// Clean up auto-save timer
+			if (autoSaveTimer) {
+				clearInterval(autoSaveTimer);
+			}
+
+			// Remove event listener
+			window.removeEventListener('beforeunload', handleBeforeUnload);
 
 			// Clean up D3 elements if needed
 			if (renderedVSM && renderedVSM.svg) {
@@ -344,6 +503,12 @@
 		onCreateConnection={createNewConnection}
 		onRemoveSelected={removeSelectedItem}
 		onAutoArrange={autoArrangeVSM}
+		onSave={handleSave}
+		onSaveAs={handleSaveAs}
+		onLoad={handleLoad}
+		onNewVSM={handleNewVSM}
+		onLoadRecent={handleLoadRecent}
+		{hasUnsavedChanges}
 	/>
 
 	<!-- VSM Container Component -->

@@ -1,0 +1,11 @@
+{
+  "env": {
+    "browser": true,
+    "node": true
+  },
+  "globals": {
+    "global": true,
+    "window": true,
+    "document": true
+  }
+}
