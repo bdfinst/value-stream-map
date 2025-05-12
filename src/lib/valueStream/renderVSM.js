@@ -7,6 +7,8 @@ import { formatDecimal } from '../utils/formatters.js';
 // Relative imports
 import { createConnectionDragBehavior } from './connectionDrag.js';
 import { createProcessDragBehavior } from './draggable.js';
+import processIndicators from './processIndicators.js';
+import connectionUI from './connectionUI.js';
 
 /**
  * @typedef {import('./processBlock').ProcessBlock} ProcessBlock
@@ -213,6 +215,7 @@ function renderVSM({ container, vsm, options = {} }) {
  */
 function renderProcessBlocks(group, processes, options) {
 	const { blockWidth, blockHeight, onClick, onEditClick, onDragEnd } = options;
+	const allConnections = options.connections || [];
 
 	// Create process block groups
 	const processGroups = group
@@ -220,14 +223,17 @@ function renderProcessBlocks(group, processes, options) {
 		.data(processes, (d) => d.id)
 		.enter()
 		.append('g')
-		.attr('class', 'process')
+		.attr('class', (d) => {
+			// Add flow-status classes (first/last)
+			const statusClasses = processIndicators.getProcessStatusClasses(d.id, allConnections);
+			return `process ${statusClasses}`;
+		})
 		.attr('data-id', (d) => d.id) // Add data-id attribute for selection by ID
 		.attr('transform', (d) => `translate(${d.position.x}, ${d.position.y})`)
 		.style('cursor', 'grab');
 
 	// Apply drag behavior if provided
 	if (onDragEnd) {
-		const allConnections = options.connections || [];
 		const allProcesses = options.processes || [];
 
 		processGroups.call(
@@ -242,7 +248,7 @@ function renderProcessBlocks(group, processes, options) {
 		);
 	}
 
-	// Add process rectangles
+	// Add process rectangles with visual indicators for flow status
 	processGroups
 		.append('rect')
 		.attr('width', blockWidth)
@@ -250,9 +256,21 @@ function renderProcessBlocks(group, processes, options) {
 		.attr('rx', 4)
 		.attr('ry', 4)
 		.attr('class', 'process-block')
-		.style('fill', '#f0f0f0')
-		.style('stroke', '#333')
-		.style('stroke-width', 2)
+		.style('fill', (d) => {
+			// Use the visual attributes service to get styling
+			const attrs = processIndicators.getProcessVisualAttributes(d.id, allConnections);
+			return attrs.fillColor;
+		})
+		.style('stroke', (d) => {
+			// Use the visual attributes service to get styling
+			const attrs = processIndicators.getProcessVisualAttributes(d.id, allConnections);
+			return attrs.stroke;
+		})
+		.style('stroke-width', (d) => {
+			// Use the visual attributes service to get styling
+			const attrs = processIndicators.getProcessVisualAttributes(d.id, allConnections);
+			return attrs.strokeWidth;
+		})
 		.on('click', (event, d) => {
 			// Toggle selection on block click
 			onClick(d);
@@ -301,6 +319,54 @@ function renderProcessBlocks(group, processes, options) {
 		.append('xhtml:div')
 		.attr('class', 'fa-container w-full h-full flex items-center justify-center')
 		.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg"></i>');
+
+	// Add status indicators
+	processGroups.each(function (d) {
+		const node = d3.select(this);
+		const attrs = processIndicators.getProcessVisualAttributes(d.id, allConnections);
+
+		// Only add indicators for first, last, or both
+		if (attrs.indicator) {
+			let iconHtml = '';
+			let iconColor = '';
+			let title = '';
+
+			// Determine which icon to show based on status
+			switch (attrs.indicator) {
+				case 'first':
+					iconHtml = '<i class="fas fa-play-circle"></i>';
+					iconColor = 'text-green-600';
+					title = 'First Step';
+					break;
+				case 'last':
+					iconHtml = '<i class="fas fa-flag-checkered"></i>';
+					iconColor = 'text-blue-600';
+					title = 'Last Step';
+					break;
+				case 'first-last':
+					iconHtml = '<i class="fas fa-circle"></i>';
+					iconColor = 'text-purple-600';
+					title = 'First & Last Step';
+					break;
+			}
+
+			// Add the indicator with appropriate positioning
+			node
+				.append('foreignObject')
+				.attr('class', 'process-indicator')
+				.attr('x', blockWidth - 28)
+				.attr('y', blockHeight - 26)
+				.attr('width', 24)
+				.attr('height', 24)
+				.append('xhtml:div')
+				.attr(
+					'class',
+					`indicator-container w-full h-full flex items-center justify-center ${iconColor}`
+				)
+				.attr('title', title)
+				.html(iconHtml);
+		}
+	});
 }
 
 /**
@@ -340,17 +406,18 @@ function renderConnections(group, connections, processes, options) {
 		if (!source || !target) return null;
 
 		// Check if this is a rework/feedback connection (going to a previous process)
-		const isReworkConnection = source.position.x > target.position.x;
+		// Connections are rework either based on the isRework flag or by position (right to left)
+		const isReworkConnection = connection.isRework || source.position.x > target.position.x;
 
 		let sourceX, sourceY, targetX, targetY;
 
 		if (isReworkConnection) {
 			// For rework connections:
-			// 1. Exit from the top of the source
+			// 1. Exit from the center-top of the source
 			sourceX = source.position.x + blockWidth / 2;
 			sourceY = source.position.y;
 
-			// 2. Connect to the top of the target
+			// 2. Connect to the center-top of the target
 			targetX = target.position.x + blockWidth / 2;
 			targetY = target.position.y;
 		} else {
@@ -384,44 +451,82 @@ function renderConnections(group, connections, processes, options) {
 		connectionGroups.on('click', (event, d) => onClick(d));
 	}
 
+	// Add tooltips to connections if needed
+	connectionGroups.each(function (d) {
+		const shouldShowTooltip = connectionUI.shouldShowTooltip(d);
+		if (shouldShowTooltip) {
+			d3.select(this)
+				.attr('data-tooltip', 'true')
+				.attr('title', connectionUI.getConnectionTooltip(d, processes))
+				.on('mouseenter', function () {
+					// Show custom tooltip if we implement one
+				})
+				.on('mouseleave', function () {
+					// Hide custom tooltip
+				});
+		}
+	});
+
 	connectionGroups.each(function (d) {
 		const points = getConnectionPoints(d);
 		if (!points) return;
 
 		const { sourceX, sourceY, targetX, targetY, isReworkConnection } = points;
 
-		// Default control points if no custom path
-		const pathPoints =
-			d.path && d.path.length > 0
-				? d.path
-				: isReworkConnection
-					? [
-							// Rework connection from top of source to top of target
-							[sourceX, sourceY], // Start at top of source
-							[sourceX, sourceY - 40], // Go up from source
-							[(sourceX + targetX) / 2, sourceY - 40], // Horizontal mid-path
-							[targetX, sourceY - 40], // Continue horizontally to above target
-							[targetX, targetY] // Go down to top of target
-						]
-					: [
-							// Standard connection from left to right
-							[sourceX, sourceY],
-							[sourceX + (targetX - sourceX) / 2, sourceY],
-							[targetX - (targetX - sourceX) / 2, targetY],
-							[targetX, targetY]
-						];
+		// Use recommended path if available or generate default
+		let pathPoints;
+		const recommendedPath = connectionUI.getRecommendedPath(
+			d.sourceId,
+			d.targetId,
+			processes,
+			connections
+		);
 
-		// Set color based on connection type (rework connections are red)
-		const strokeColor = isReworkConnection ? '#e53e3e' : '#555'; // red for rework, gray for normal
+		if (recommendedPath && recommendedPath.length > 0) {
+			// Use the recommended path from our enhanced UI
+			pathPoints = recommendedPath;
+		} else if (d.path && d.path.length > 0) {
+			// Use existing custom path if available
+			pathPoints = d.path;
+		} else if (isReworkConnection) {
+			// Default rework connection path - improved arc
+			const arcHeight = Math.min(80, Math.abs(sourceX - targetX) * 0.3);
+			const midY = Math.min(sourceY, targetY) - arcHeight;
+			const midX = (sourceX + targetX) / 2;
+
+			pathPoints = [
+				// Rework connection from top of source to top of target
+				[sourceX, sourceY], // Start at top of source
+				[sourceX, sourceY - 30], // Go up from source
+				[sourceX + (midX - sourceX) * 0.5, midY], // Curve towards middle
+				[midX, midY], // Midpoint of the arc
+				[targetX + (midX - targetX) * 0.5, midY], // Curve towards target
+				[targetX, targetY - 30], // Above target
+				[targetX, targetY] // End at top of target
+			];
+		} else {
+			// Default standard connection path
+			pathPoints = [
+				// Standard connection from left to right
+				[sourceX, sourceY],
+				[sourceX + (targetX - sourceX) / 2, sourceY],
+				[targetX - (targetX - sourceX) / 2, targetY],
+				[targetX, targetY]
+			];
+		}
+
+		// Get visual attributes from enhanced UI
+		const visualAttrs = connectionUI.getConnectionVisualAttributes(d, processes);
 
 		// Render connection path
 		d3.select(this)
 			.append('path')
 			.attr('d', lineGenerator(pathPoints))
 			.attr('fill', 'none')
-			.attr('stroke', strokeColor)
-			.attr('stroke-width', 2)
-			.attr('marker-end', `url(#${isReworkConnection ? 'arrow-red' : 'arrow'})`);
+			.attr('stroke', visualAttrs.stroke)
+			.attr('stroke-width', visualAttrs.strokeWidth)
+			.attr('stroke-opacity', visualAttrs.strokeOpacity)
+			.attr('marker-end', `url(#${visualAttrs.arrowMarker})`);
 
 		// Add draggable endpoint if drag handler is provided
 		if (onDragEnd) {
@@ -462,7 +567,7 @@ function renderConnections(group, connections, processes, options) {
 				.attr(
 					'transform',
 					isReworkConnection
-						? `translate(${(sourceX + targetX) / 2}, ${sourceY - 60})` // Above the arch for rework
+						? `translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 80})` // Above the arch for rework
 						: `translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2 - 20})`
 				); // Above the line for normal
 
@@ -476,7 +581,7 @@ function renderConnections(group, connections, processes, options) {
 				.attr('rx', 12)
 				.attr('ry', 12)
 				.style('fill', 'white')
-				.style('stroke', strokeColor)
+				.style('stroke', visualAttrs.stroke)
 				.style('stroke-width', 1);
 
 			// Add wait time text - shifted left to make room for edit button
@@ -487,7 +592,7 @@ function renderConnections(group, connections, processes, options) {
 				.attr('text-anchor', 'middle')
 				.style('font-size', '11px')
 				.style('font-weight', 'bold')
-				.style('fill', strokeColor)
+				.style('fill', visualAttrs.stroke)
 				.text(`WT: ${formatDecimal(d.metrics.waitTime)}`);
 
 			// Add edit button directly inside the wait time label group
@@ -550,6 +655,27 @@ function renderConnections(group, connections, processes, options) {
 				.html(
 					'<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg bg-white rounded-full p-1"></i>'
 				);
+		}
+
+		// Add description label
+		if (isReworkConnection) {
+			// Add a small "Rework" label for rework connections
+			const reworkLabel = d3
+				.select(this)
+				.append('g')
+				.attr('class', 'rework-label')
+				.attr(
+					'transform',
+					`translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 100})`
+				);
+
+			reworkLabel
+				.append('text')
+				.attr('text-anchor', 'middle')
+				.style('font-size', '10px')
+				.style('font-style', 'italic')
+				.style('fill', visualAttrs.stroke)
+				.text('Rework');
 		}
 	});
 

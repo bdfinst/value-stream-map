@@ -3,6 +3,7 @@
 	export let onCreateProcess;
 	export let onCreateConnection;
 	export let onRemoveSelected;
+	export let onAutoArrange = null;
 </script>
 
 <div class="mb-4 flex space-x-2">
@@ -32,6 +33,17 @@
 		>
 			<i class="fas fa-trash-alt"></i>
 			Remove Selected
+		</button>
+	{/if}
+
+	{#if onAutoArrange}
+		<button
+			class="flex items-center gap-2 rounded-md bg-[var(--color-unicorn-black)] px-4 py-2 text-[var(--color-unicorn-white)] hover:bg-[var(--color-unicorn-black-65)]"
+			on:click={onAutoArrange}
+			aria-label="Auto arrange processes in optimal flow layout"
+		>
+			<i class="fas fa-magic"></i>
+			Auto Arrange
 		</button>
 	{/if}
 </div>

@@ -7,8 +7,11 @@
 	import VSMContainer from '$lib/components/VSMContainer.svelte';
 	import VSMToolbar from '$lib/components/VSMToolbar.svelte';
 	import { connection, processBlock, renderVSM } from '$lib/valueStream';
+	import processCreationFlow from '$lib/valueStream/processCreationFlow.js';
+	// Connection modal enhancer is included via processCreationFlow
 	import { createSampleVSM } from '$lib/valueStream/sampleVSM.js';
 	import { initVSMStore } from '$lib/valueStream/vsmStore.js';
+	import vsmCreator from '$lib/valueStream/createVSM.js';
 	import { onMount } from 'svelte';
 
 	let container;
@@ -133,12 +136,24 @@
 		if (isNewProcess) {
 			// Add new process to the store
 			vsmStore.addProcess(processToSave);
+
+			// After adding a new process, prompt for connection creation
+			// but only if there were already other processes
+			if (storeValue.vsm.processes.length > 1) {
+				// Use the processCreationFlow to handle the connection prompting
+				// providing the necessary callbacks
+				processCreationFlow.promptConnectionAfterProcessCreation(vsmStore, processToSave, {
+					showConnectionModal: (show) => (showConnectionModal = show),
+					setCurrentConnection: (conn) => (currentConnection = conn),
+					setCurrentProcess: (proc) => (currentProcess = proc)
+				});
+			}
 		} else {
 			// Update existing process
 			vsmStore.updateProcess(processToSave.id, processToSave);
 		}
 
-		// Close the modal
+		// Close the process edit modal
 		showProcessModal = false;
 		currentProcess = null;
 	}
@@ -232,15 +247,19 @@
 	}
 
 	// Create a new connection
-	function createNewConnection() {
+	function createNewConnection(newProcessId = null) {
 		const newId = `conn${storeValue.vsm.connections.length + 1}_${Date.now()}`;
-		const newConnection = connection.create({
+
+		// Create the initial connection with minimal data
+		let newConnection = connection.create({
 			id: newId,
 			sourceId: '',
-			targetId: ''
+			targetId: newProcessId || '', // Set target if providing a new process ID
+			metrics: { waitTime: 0 }
 		});
 
 		// Don't add to the store yet, just show the edit dialog
+		// The ConnectionEditor component will handle pre-filling values
 		currentConnection = newConnection;
 		showConnectionModal = true;
 	}
@@ -256,6 +275,24 @@
 	// Toggle legend modal
 	function toggleLegend() {
 		showLegendModal = !showLegendModal;
+	}
+
+	// Auto-arrange the VSM processes
+	function autoArrangeVSM() {
+		if (!storeValue || !storeValue.vsm) return;
+
+		// Use the autoArrange function to rearrange processes
+		const updatedVSM = vsmCreator.autoArrange(storeValue.vsm);
+
+		// Update the store with the new VSM
+		vsmStore.setVSM(updatedVSM);
+
+		// After arranging, zoom to fit to show all processes
+		setTimeout(() => {
+			if (zoomController && zoomController.zoomFit) {
+				zoomController.zoomFit();
+			}
+		}, 100);
 	}
 
 	// Bind container element
@@ -306,6 +343,7 @@
 		onCreateProcess={createNewProcess}
 		onCreateConnection={createNewConnection}
 		onRemoveSelected={removeSelectedItem}
+		onAutoArrange={autoArrangeVSM}
 	/>
 
 	<!-- VSM Container Component -->
@@ -334,8 +372,10 @@
 		<ConnectionEditor
 			connection={currentConnection}
 			processes={storeValue.vsm.processes}
+			connections={storeValue.vsm.connections}
 			onSave={handleConnectionUpdate}
 			onCancel={cancelEditing}
+			newProcessId={currentConnection.targetId || null}
 		/>
 	{/if}
 </Modal>

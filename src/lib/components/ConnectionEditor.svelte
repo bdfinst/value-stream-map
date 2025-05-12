@@ -1,5 +1,6 @@
 <script>
 	import { validateConnection } from '../valueStream/connectionEditor.js';
+	import connectionModalEnhancer from '../valueStream/connectionModalEnhancer.js';
 
 	/** @type {import('../valueStream/connection').Connection} */
 	export let connection;
@@ -9,16 +10,48 @@
 	export let onSave;
 	/** @type {Function} */
 	export let onCancel;
+	/** @type {String} - ID of a newly created process that should be pre-selected */
+	export let newProcessId = null;
+	/** @type {Array} - List of all connections in the VSM */
+	export let connections = [];
+
+	/**
+	 * Prepares the connection for editing, applying any pre-fill logic needed
+	 * @param {Object} originalConnection - The original connection
+	 * @returns {Object} - The prepared connection
+	 */
+	function prepareConnectionForEditing(originalConnection) {
+		// No pre-filling needed if no new process ID
+		if (!newProcessId || !processes.some((p) => p.id === newProcessId)) {
+			return originalConnection;
+		}
+
+		// Pre-fill the connection based on the new process ID
+		// Use the connection enhancer to suggest appropriate values
+		return connectionModalEnhancer.preSelectConnectionValues(
+			originalConnection,
+			processes,
+			connections,
+			newProcessId
+		);
+	}
+
+	// Prepare connection data for editing
+	const preFilledConnection = prepareConnectionForEditing(connection);
 
 	// Create local copies of connection data for editing
-	let sourceId = connection.sourceId;
-	let targetId = connection.targetId;
-	let waitTime = connection.metrics?.waitTime || 0;
-	let isRework = connection.isRework || false;
+	let sourceId = preFilledConnection.sourceId;
+	let targetId = preFilledConnection.targetId;
+	let waitTime = preFilledConnection.metrics?.waitTime || 0;
+	let isRework = preFilledConnection.isRework || false;
 
 	// Form validation
 	let errors = {};
 
+	/**
+	 * Validates the connection form data
+	 * @returns {boolean} - Whether the form is valid
+	 */
 	function validateForm() {
 		const connectionData = {
 			sourceId,
@@ -39,6 +72,9 @@
 		return result.isValid;
 	}
 
+	/**
+	 * Handles the form submission
+	 */
 	function handleSubmit() {
 		if (!validateForm()) return;
 
@@ -56,10 +92,35 @@
 
 		onSave(updatedConnection);
 	}
+
+	/**
+	 * Determines if this is for creating a new connection
+	 * @returns {boolean} - True if creating a new connection
+	 */
+	function isNewConnection() {
+		return !connection.sourceId && !connection.targetId;
+	}
 </script>
 
 <div class="rounded-lg bg-white p-4 shadow">
 	<h2 class="mb-4 text-xl font-bold">Edit Connection</h2>
+
+	<!-- Guidance message when adding new connection -->
+	{#if isNewConnection()}
+		<div class="mb-4 rounded-md bg-blue-50 p-3 text-blue-800">
+			<div class="flex">
+				<div class="flex-shrink-0">
+					<i class="fas fa-info-circle"></i>
+				</div>
+				<div class="ml-3">
+					<p class="text-sm font-medium">
+						Connections define the flow between processes. Select a source and target process to
+						create a connection.
+					</p>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<form on:submit|preventDefault={handleSubmit} class="space-y-4">
 		<div>

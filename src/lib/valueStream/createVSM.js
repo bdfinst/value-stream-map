@@ -3,6 +3,9 @@
  * @typedef {import('./connection').Connection} Connection
  */
 
+// Import auto layout functionality
+import autoLayout from './autoLayout.js';
+
 /**
  * @typedef {Object} VSMMetrics
  * @property {number} totalLeadTime - Total lead time across all processes (best case)
@@ -456,11 +459,26 @@ function updateVSM(vsm, updates) {
  * Adds a process to a VSM
  * @param {ValueStreamMap} vsm - Existing VSM
  * @param {ProcessBlock} process - Process to add
+ * @param {boolean} [autoPosition=true] - Whether to automatically position the new process
  * @returns {ValueStreamMap} - Updated VSM with new process
  */
-function addProcess(vsm, process) {
+function addProcess(vsm, process, autoPosition = true) {
+	// Add the process first
+	const updatedProcesses = [...vsm.processes, process];
+
+	// If auto-positioning is enabled and there are existing processes,
+	// optimize the position of the new process
+	if (autoPosition && vsm.processes.length > 0) {
+		// Get recommended position if one isn't set or is at (0,0)
+		if (!process.position || (process.position.x === 0 && process.position.y === 0)) {
+			// Pass both processes and connections for better positioning
+			const recommendedPosition = autoLayout.getRecommendedPosition(vsm.processes, vsm.connections);
+			process.position = recommendedPosition;
+		}
+	}
+
 	return updateVSM(vsm, {
-		processes: [...vsm.processes, process]
+		processes: updatedProcesses
 	});
 }
 
@@ -476,9 +494,25 @@ function addConnection(vsm, connection) {
 	});
 }
 
+/**
+ * Auto-arranges all processes in a VSM based on their connections
+ * @param {ValueStreamMap} vsm - Existing VSM
+ * @returns {ValueStreamMap} - Updated VSM with auto-arranged processes
+ */
+function autoArrangeVSM(vsm) {
+	// Use the autoLayout module to calculate optimized positions
+	const updatedProcesses = autoLayout.autoArrangeProcesses(vsm.processes, vsm.connections);
+
+	// Update the VSM with the optimized process positions
+	return updateVSM(vsm, {
+		processes: updatedProcesses
+	});
+}
+
 export default {
 	create: createVSM,
 	update: updateVSM,
 	addProcess,
-	addConnection
+	addConnection,
+	autoArrange: autoArrangeVSM
 };
