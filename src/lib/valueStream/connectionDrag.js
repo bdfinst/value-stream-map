@@ -179,7 +179,7 @@ function createConnectionDragBehavior(d3, processes, blockWidth, blockHeight, on
 				};
 
 				// Call the callback with the updated connection
-				onDragEnd(updatedConnection);
+				onDragEnd({ originalData: d, newTargetId: nearestProcess.id });
 			} else {
 				// Reset to original connection
 
@@ -241,7 +241,7 @@ function createConnectionDragBehavior(d3, processes, blockWidth, blockHeight, on
 				}
 
 				// Call the callback with the original connection to ensure store consistency
-				onDragEnd(originalConnection);
+				onDragEnd({ originalData: originalConnection, newTargetId: originalConnection.targetId });
 			}
 		});
 }
