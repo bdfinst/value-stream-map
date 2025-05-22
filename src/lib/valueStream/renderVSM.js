@@ -370,7 +370,7 @@ function renderProcessBlocks(group, processes, options) {
 }
 
 /**
- * Renders connections between processes
+ * Renders connections between processes using D3's general update pattern.
  * @param {Object} group - D3 selection for the group to render into
  * @param {Array<Connection>} connections - Connections to render
  * @param {Array<ProcessBlock>} processes - Process blocks for reference
@@ -380,7 +380,7 @@ function renderProcessBlocks(group, processes, options) {
  * @param {Function} [options.onClick] - Connection click handler for selection
  * @param {Function} [options.onEditClick] - Connection edit handler
  * @param {Function} [options.onDragEnd] - Connection drag handler
- * @param {Array<ProcessBlock>} [options.processes] - Processes for reference
+ * @param {Array<ProcessBlock>} [options.processes] - Processes for reference (allProcesses)
  */
 function renderConnections(group, connections, processes, options) {
 	const {
@@ -389,138 +389,109 @@ function renderConnections(group, connections, processes, options) {
 		onClick,
 		onEditClick,
 		onDragEnd,
-		processes: allProcesses
+		processes: allProcesses // Renamed for clarity inside function
 	} = options;
 
-	// Create a lookup map for processes by ID
-	const processMap = processes.reduce((map, process) => {
-		map[process.id] = process;
-		return map;
-	}, {});
+	// Create a lookup map for processes by ID for quick access
+	const processMap = new Map(processes.map((p) => [p.id, p]));
 
 	// Helper to calculate connection points
 	const getConnectionPoints = (connection) => {
-		const source = processMap[connection.sourceId];
-		const target = processMap[connection.targetId];
+		const source = processMap.get(connection.sourceId);
+		const target = processMap.get(connection.targetId);
 
 		if (!source || !target) return null;
 
-		// Check if this is a rework/feedback connection (going to a previous process)
-		// Connections are rework either based on the isRework flag or by position (right to left)
 		const isReworkConnection = connection.isRework || source.position.x > target.position.x;
-
 		let sourceX, sourceY, targetX, targetY;
 
 		if (isReworkConnection) {
-			// For rework connections:
-			// 1. Exit from the center-top of the source
 			sourceX = source.position.x + blockWidth / 2;
 			sourceY = source.position.y;
-
-			// 2. Connect to the center-top of the target
 			targetX = target.position.x + blockWidth / 2;
 			targetY = target.position.y;
 		} else {
-			// For normal flow:
-			// 1. Exit from the right side of the source
 			sourceX = source.position.x + blockWidth;
 			sourceY = source.position.y + blockHeight / 2;
-
-			// 2. Connect to the left side of the target
 			targetX = target.position.x;
 			targetY = target.position.y + blockHeight / 2;
 		}
-
 		return { sourceX, sourceY, targetX, targetY, isReworkConnection };
 	};
 
-	// Generate line generator for connections
 	const lineGenerator = d3.line().curve(d3.curveBasis);
 
-	// Create connection paths
+	// Data join for connection groups
 	const connectionGroups = group
-		.selectAll('.connection')
-		.data(connections, (d) => d.id)
+		.selectAll('g.connection') // Select by specific class and tag
+		.data(connections, (d) => d.id);
+
+	// Exit selection: Remove old connection groups
+	connectionGroups.exit().remove();
+
+	// Enter selection: Create new connection groups
+	const enterGroups = connectionGroups
 		.enter()
 		.append('g')
-		.attr('class', 'connection')
-		.attr('data-id', (d) => d.id) // Add data-id for selection
+		.attr('class', 'connection') // Apply class immediately
 		.style('cursor', onClick ? 'pointer' : 'default');
 
+	// Add click handler to new groups if onClick is provided
 	if (onClick) {
-		connectionGroups.on('click', (event, d) => onClick(d));
+		// Apply to enter selection only, as merge below might re-add if not careful
+		enterGroups.on('click', (event, d) => onClick(d));
 	}
+	
+	// Merge enter and update selections
+	const mergedGroups = enterGroups.merge(connectionGroups);
 
-	// Add tooltips to connections if needed
-	connectionGroups.each(function (d) {
+	// Update attributes for all groups (new and existing)
+	mergedGroups
+		.attr('data-id', (d) => d.id)
+		.attr('data-source-id', (d) => d.sourceId)
+		.attr('data-target-id', (d) => d.targetId);
+	
+	// Apply changes to each connection group (new or updated)
+	mergedGroups.each(function (d) { // 'd' is the connection data for this group
+		const groupElement = d3.select(this); // 'this' is the <g class="connection"> element
+
+		// Update tooltip (applied to merged selection)
 		const shouldShowTooltip = connectionUI.shouldShowTooltip(d);
 		if (shouldShowTooltip) {
-			d3.select(this)
-				.attr('data-tooltip', 'true')
-				.attr('title', connectionUI.getConnectionTooltip(d, processes))
-				.on('mouseenter', function () {
-					// Show custom tooltip if we implement one
-				})
-				.on('mouseleave', function () {
-					// Hide custom tooltip
-				});
+			groupElement.attr('data-tooltip', 'true').attr('title', connectionUI.getConnectionTooltip(d, processes));
+		} else {
+			groupElement.attr('data-tooltip', null).attr('title', null);
 		}
-	});
 
-	connectionGroups.each(function (d) {
 		const points = getConnectionPoints(d);
-		if (!points) return;
-
+		if (!points) {
+			groupElement.remove(); // Or hide, if preferred
+			return;
+		}
 		const { sourceX, sourceY, targetX, targetY, isReworkConnection } = points;
 
-		// Use recommended path if available or generate default
 		let pathPoints;
-		const recommendedPath = connectionUI.getRecommendedPath(
-			d.sourceId,
-			d.targetId,
-			processes,
-			connections
-		);
-
+		const recommendedPath = connectionUI.getRecommendedPath(d.sourceId, d.targetId, processes, connections);
 		if (recommendedPath && recommendedPath.length > 0) {
-			// Use the recommended path from our enhanced UI
 			pathPoints = recommendedPath;
 		} else if (d.path && d.path.length > 0) {
-			// Use existing custom path if available
 			pathPoints = d.path;
 		} else if (isReworkConnection) {
-			// Default rework connection path - improved arc
 			const arcHeight = Math.min(80, Math.abs(sourceX - targetX) * 0.3);
 			const midY = Math.min(sourceY, targetY) - arcHeight;
 			const midX = (sourceX + targetX) / 2;
-
-			pathPoints = [
-				// Rework connection from top of source to top of target
-				[sourceX, sourceY], // Start at top of source
-				[sourceX, sourceY - 30], // Go up from source
-				[sourceX + (midX - sourceX) * 0.5, midY], // Curve towards middle
-				[midX, midY], // Midpoint of the arc
-				[targetX + (midX - targetX) * 0.5, midY], // Curve towards target
-				[targetX, targetY - 30], // Above target
-				[targetX, targetY] // End at top of target
-			];
+			pathPoints = [[sourceX, sourceY], [sourceX, sourceY - 30], [sourceX + (midX - sourceX) * 0.5, midY], [midX, midY], [targetX + (midX - targetX) * 0.5, midY], [targetX, targetY - 30], [targetX, targetY]];
 		} else {
-			// Default standard connection path
-			pathPoints = [
-				// Standard connection from left to right
-				[sourceX, sourceY],
-				[sourceX + (targetX - sourceX) / 2, sourceY],
-				[targetX - (targetX - sourceX) / 2, targetY],
-				[targetX, targetY]
-			];
+			pathPoints = [[sourceX, sourceY], [sourceX + (targetX - sourceX) / 2, sourceY], [targetX - (targetX - sourceX) / 2, targetY], [targetX, targetY]];
 		}
 
-		// Get visual attributes from enhanced UI
 		const visualAttrs = connectionUI.getConnectionVisualAttributes(d, processes);
 
-		// Render connection path
-		d3.select(this)
-			.append('path')
+		// Path: using .join() to handle enter/update/exit for the path element itself
+		groupElement.selectAll('path.connection-line') // Specific class for the line path
+			.data([d]) // Bind the connection data to the path
+			.join('path')
+			.attr('class', 'connection-line')
 			.attr('d', lineGenerator(pathPoints))
 			.attr('fill', 'none')
 			.attr('stroke', visualAttrs.stroke)
@@ -528,15 +499,21 @@ function renderConnections(group, connections, processes, options) {
 			.attr('stroke-opacity', visualAttrs.strokeOpacity)
 			.attr('marker-end', `url(#${visualAttrs.arrowMarker})`);
 
-		// Add draggable endpoint if drag handler is provided
+		// Draggable Endpoint
 		if (onDragEnd) {
-			// Add a draggable endpoint at the target end of the path
-			const endpointGroup = d3.select(this).append('g').attr('class', 'endpoint-group');
-			// Don't set transform, so that the endpoint position is relative to connection group
+			const endpointData = [d]; // Data for the endpoint group/circle
 
-			// Add the draggable endpoint circle
-			endpointGroup
-				.append('circle')
+			// Select or append the endpoint group
+			const endpointGroup = groupElement.selectAll('g.endpoint-group')
+				.data(endpointData)
+				.join('g')
+				.attr('class', 'endpoint-group');
+				// No transform needed as cx/cy are absolute to the <g class="connection">
+				
+			// Select or append the circle within the endpoint group
+			endpointGroup.selectAll('circle.endpoint')
+				.data(endpointData) // Use endpointData here as well
+				.join('circle')
 				.attr('class', 'endpoint')
 				.attr('cx', targetX)
 				.attr('cy', targetY)
@@ -545,170 +522,127 @@ function renderConnections(group, connections, processes, options) {
 				.style('stroke', '#fff')
 				.style('stroke-width', 2)
 				.style('cursor', 'move')
-				.attr('data-rework', isReworkConnection ? 'true' : 'false'); // Add data attribute to identify rework connections
-
-			// Apply drag behavior
-			endpointGroup.call(
-				createConnectionDragBehavior(d3, allProcesses, blockWidth, blockHeight, onDragEnd)
-			);
+				.attr('data-rework', isReworkConnection ? 'true' : 'false')
+				.call(createConnectionDragBehavior(d3, allProcesses, blockWidth, blockHeight, onDragEnd)); // Apply drag to the circle
+		} else {
+			groupElement.select('g.endpoint-group').remove(); // Remove if no drag handler
 		}
-
-		// Calculate the midpoint for adding controls/labels
+		
 		const midX = (sourceX + targetX) / 2;
 		const midY = (sourceY + targetY) / 2;
 
-		// Add wait time label to the connection
-		if (d.metrics && d.metrics.waitTime !== undefined) {
-			// Create label background
-			const labelGroup = d3
-				.select(this)
-				.append('g')
-				.attr('class', 'wait-time-label')
-				.attr(
-					'transform',
-					isReworkConnection
-						? `translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 80})` // Above the arch for rework
-						: `translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2 - 20})`
-				); // Above the line for normal
+		// Wait Time Label
+		const hasWaitTime = d.metrics && d.metrics.waitTime !== undefined;
+		const waitTimeLabelData = hasWaitTime ? [d] : [];
 
-			// Add background pill - wider to accommodate edit button
-			labelGroup
-				.append('rect')
-				.attr('x', -40) // Shift left to maintain centering
-				.attr('y', -12)
-				.attr('width', 80) // Wider (was 60px)
-				.attr('height', 24)
-				.attr('rx', 12)
-				.attr('ry', 12)
-				.style('fill', 'white')
-				.style('stroke', visualAttrs.stroke)
-				.style('stroke-width', 1);
-
-			// Add wait time text - shifted left to make room for edit button
-			labelGroup
-				.append('text')
-				.attr('x', -10) // Shift left (was 0)
-				.attr('y', 5)
-				.attr('text-anchor', 'middle')
-				.style('font-size', '11px')
-				.style('font-weight', 'bold')
-				.style('fill', visualAttrs.stroke)
-				.text(`WT: ${formatDecimal(d.metrics.waitTime)}`);
-
-			// Add edit button directly inside the wait time label group
-			if (onEditClick || onClick) {
-				const editButton = labelGroup
-					.append('foreignObject')
-					.attr('class', 'connection-edit')
-					.attr('x', 17) // Position at right side of pill
-					.attr('y', -12)
-					.attr('width', 24)
-					.attr('height', 24)
-					.style('cursor', 'pointer')
-					.on('click', (event, d) => {
-						event.stopPropagation();
-
-						// Use the dedicated edit handler if available
-						if (onEditClick) {
-							onEditClick(d);
-						} else if (onClick) {
-							// Fallback to onClick with 'edit' action if no dedicated handler
-							onClick(d, 'edit');
-						}
-					});
-
-				// Add Font Awesome edit icon using HTML
-				editButton
-					.append('xhtml:div')
-					.attr('class', 'fa-container w-full h-full flex items-center justify-center')
-					.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-sm"></i>');
-			}
-		}
-
-		// Add floating edit button only if there's no wait time label
-		if (onClick && (!d.metrics || d.metrics.waitTime === undefined)) {
-			const editButton = d3
-				.select(this)
-				.append('foreignObject')
-				.attr('class', 'connection-edit')
-				.attr('x', midX - 14)
-				.attr('y', midY - 4)
-				.attr('width', 28)
-				.attr('height', 28)
-				.style('cursor', 'pointer')
-				.on('click', (event, d) => {
-					event.stopPropagation();
-
-					// Use the dedicated edit handler if available
-					if (onEditClick) {
-						onEditClick(d);
-					} else if (onClick) {
-						// Fallback to onClick with 'edit' action if no dedicated handler
-						onClick(d, 'edit');
+		groupElement.selectAll('g.wait-time-label')
+			.data(waitTimeLabelData)
+			.join(
+				enter => {
+					const gLabel = enter.append('g').attr('class', 'wait-time-label');
+					gLabel.append('rect')
+						.attr('class', 'label-bg') // Class for selection/update
+						.attr('x', -40).attr('y', -12).attr('width', 80).attr('height', 24)
+						.attr('rx', 12).attr('ry', 12).style('fill', 'white');
+					gLabel.append('text')
+						.attr('class', 'label-text') // Class for selection/update
+						.attr('x', -10).attr('y', 5).attr('text-anchor', 'middle')
+						.style('font-size', '11px').style('font-weight', 'bold');
+					if (onEditClick || onClick) {
+						const editButton = gLabel.append('foreignObject')
+							.attr('class', 'connection-edit-wait-time') // Specific class
+							.attr('x', 17).attr('y', -12).attr('width', 24).attr('height', 24)
+							.style('cursor', 'pointer');
+						editButton.append('xhtml:div')
+							.attr('class', 'fa-container w-full h-full flex items-center justify-center')
+							.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-sm"></i>');
 					}
-				});
+					return gLabel;
+				},
+				update => update, // No specific update needed for the <g> itself here, children are updated below
+				exit => exit.remove()
+			)
+			.attr('transform', isReworkConnection ? `translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 80})` : `translate(${(sourceX + targetX) / 2}, ${(sourceY + targetY) / 2 - 20})`)
+			.call(gLabel => { // Update children of the label group
+				gLabel.select('rect.label-bg')
+					.style('stroke', visualAttrs.stroke)
+					.style('stroke-width', 1);
+				gLabel.select('text.label-text')
+					.style('fill', visualAttrs.stroke)
+					.text(`WT: ${formatDecimal(d.metrics.waitTime)}`);
+				gLabel.select('foreignObject.connection-edit-wait-time')
+					.on('click', (event) => { // d is from parent .each()
+						event.stopPropagation();
+						if (onEditClick) onEditClick(d); else if (onClick) onClick(d, 'edit');
+					});
+			});
 
-			// Add Font Awesome edit icon using HTML
-			editButton
-				.append('xhtml:div')
-				.attr('class', 'fa-container w-full h-full flex items-center justify-center')
-				.html(
-					'<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg bg-white rounded-full p-1"></i>'
-				);
-		}
+		// Floating Edit Button (if no wait time label)
+		const showFloatingEdit = onClick && !hasWaitTime;
+		const floatingEditData = showFloatingEdit ? [d] : [];
 
-		// Add description label
-		if (isReworkConnection) {
-			// Add a small "Rework" label for rework connections
-			const reworkLabel = d3
-				.select(this)
-				.append('g')
-				.attr('class', 'rework-label')
-				.attr(
-					'transform',
-					`translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 100})`
-				);
-
-			reworkLabel
-				.append('text')
-				.attr('text-anchor', 'middle')
-				.style('font-size', '10px')
-				.style('font-style', 'italic')
+		groupElement.selectAll('foreignObject.connection-edit-floating')
+			.data(floatingEditData)
+			.join(
+				enter => {
+					const fo = enter.append('foreignObject')
+						.attr('class', 'connection-edit-floating')
+						.attr('width', 28).attr('height', 28).style('cursor', 'pointer');
+					fo.append('xhtml:div')
+						.attr('class', 'fa-container w-full h-full flex items-center justify-center')
+						.html('<i class="fas fa-cog text-gray-600 hover:text-blue-500 text-lg bg-white rounded-full p-1"></i>');
+					return fo;
+				},
+				update => update,
+				exit => exit.remove()
+			)
+			.attr('x', midX - 14).attr('y', midY - 4)
+			.on('click', (event) => { // d is from parent .each()
+				event.stopPropagation();
+				if (onEditClick) onEditClick(d); else if (onClick) onClick(d, 'edit');
+			});
+			
+		// Rework Label
+		const reworkLabelData = isReworkConnection ? [d] : [];
+		groupElement.selectAll('g.rework-label')
+			.data(reworkLabelData)
+			.join(
+				enter => {
+					const gRework = enter.append('g').attr('class', 'rework-label');
+					gRework.append('text')
+						.attr('text-anchor', 'middle')
+						.style('font-size', '10px').style('font-style', 'italic');
+					return gRework;
+				},
+				update => update,
+				exit => exit.remove()
+			)
+			.attr('transform', `translate(${(sourceX + targetX) / 2}, ${Math.min(sourceY, targetY) - 100})`)
+			.select('text')
 				.style('fill', visualAttrs.stroke)
 				.text('Rework');
-		}
 	});
 
-	// Add arrow marker definitions to SVG
-	const defs = group.append('defs');
+	// Add arrow marker definitions to SVG (ensure they are defined once)
+	let defs = d3.select(group.node().ownerSVGElement).select('defs');
+	if (defs.empty()) {
+		defs = d3.select(group.node().ownerSVGElement).append('defs');
+	}
 
-	// Standard gray arrow marker
-	defs
-		.append('marker')
-		.attr('id', 'arrow')
-		.attr('viewBox', '0 -5 10 10')
-		.attr('refX', 8)
-		.attr('refY', 0)
-		.attr('markerWidth', 6)
-		.attr('markerHeight', 6)
-		.attr('orient', 'auto')
-		.append('path')
-		.attr('d', 'M0,-5L10,0L0,5')
-		.attr('fill', '#555');
-
-	// Red arrow marker for rework connections
-	defs
-		.append('marker')
-		.attr('id', 'arrow-red')
-		.attr('viewBox', '0 -5 10 10')
-		.attr('refX', 8)
-		.attr('refY', 0)
-		.attr('markerWidth', 6)
-		.attr('markerHeight', 6)
-		.attr('orient', 'auto')
-		.append('path')
-		.attr('d', 'M0,-5L10,0L0,5')
-		.attr('fill', '#e53e3e');
+	if (defs.select('#arrow').empty()) {
+		defs.append('marker')
+			.attr('id', 'arrow')
+			.attr('viewBox', '0 -5 10 10').attr('refX', 8).attr('refY', 0)
+			.attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
+			.append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#555');
+	}
+	if (defs.select('#arrow-red').empty()) {
+		defs.append('marker')
+			.attr('id', 'arrow-red')
+			.attr('viewBox', '0 -5 10 10').attr('refX', 8).attr('refY', 0)
+			.attr('markerWidth', 6).attr('markerHeight', 6).attr('orient', 'auto')
+			.append('path').attr('d', 'M0,-5L10,0L0,5').attr('fill', '#e53e3e');
+	}
 }
 
 /**

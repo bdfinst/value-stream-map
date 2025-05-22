@@ -252,6 +252,7 @@
             });
             vsmStore.addConnection(C_new_Data);
             console.log('Insert complete. Old connection updated, new connection added.');
+            autoArrangeVSM();
 
         } else {
             // Simple retarget: P_prev -> P_new.
