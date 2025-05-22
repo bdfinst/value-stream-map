@@ -208,11 +208,78 @@
 	}
 
 	// Handle connection drag
-	function handleConnectionDrag(updatedConnection) {
-		console.log('Connection dragged:', updatedConnection);
+	function handleConnectionDrag(dragResult) {
+    const { originalData: C_orig, newTargetId } = dragResult;
+    const oldTargetId = C_orig.targetId; // Original target of the dragged connection
 
-		// Update the connection in the store
-		vsmStore.updateConnection(updatedConnection.id, updatedConnection);
+    console.log('Connection drag event:', { originalData: C_orig, newTargetId });
+
+    if (newTargetId && newTargetId !== C_orig.sourceId) {
+        // Valid drop on a process that isn't the source of the connection.
+        
+        if (newTargetId === oldTargetId) {
+            // Dropped back onto its original target. No change needed.
+            // The drag behavior in connectionDrag.js should already restore the visual.
+            // We can optionally ensure the store is consistent if there's any doubt.
+            console.log('Connection returned to original target. No logical change.');
+            // vsmStore.updateConnection(C_orig.id, { targetId: oldTargetId }); // Usually not needed if visual restored
+            return; 
+        }
+
+        // Condition for insertion:
+        // 1. The connection had an original target (oldTargetId is not null/undefined).
+        // 2. The new target (newTargetId) is different from the old target.
+        // This means we are inserting P_new between P_prev (C_orig.sourceId) and P_next (oldTargetId).
+        const isInsertOperation = oldTargetId && newTargetId !== oldTargetId;
+
+        if (isInsertOperation) {
+            // Insertion: P_prev -> P_new -> P_next
+            console.log(`Performing insert: Original ${C_orig.sourceId} -> ${oldTargetId}. New: ${C_orig.sourceId} -> ${newTargetId} -> ${oldTargetId}`);
+
+            // 1. Update C_orig to connect P_prev -> P_new
+            vsmStore.updateConnection(C_orig.id, { targetId: newTargetId });
+
+            // 2. Create C_new to connect P_new -> P_next
+            // Ensure `storeValue` is accessible in this scope, or pass vsmStore.get() if needed.
+            // It's typically available in +page.svelte scripts.
+            const newConnectionId = `conn${storeValue.vsm.connections.length + 1}_${Date.now()}`;
+            const C_new_Data = connection.create({ // Using the imported connection module
+                id: newConnectionId,
+                sourceId: newTargetId,    // P_new is source
+                targetId: oldTargetId,    // P_next is target
+                metrics: { waitTime: 0 }, // Default metrics, can be edited later
+                // path will be auto-calculated by rendering logic
+            });
+            vsmStore.addConnection(C_new_Data);
+            console.log('Insert complete. Old connection updated, new connection added.');
+            autoArrangeVSM();
+
+        } else {
+            // Simple retarget: P_prev -> P_new.
+            // This happens if C_orig had no oldTargetId (e.g., a new connection being dragged for the first time)
+            // or if newTargetId is the same as oldTargetId (handled by the early return).
+            console.log(`Performing retarget: ${C_orig.sourceId} -> ${newTargetId}`);
+            vsmStore.updateConnection(C_orig.id, { targetId: newTargetId });
+        }
+
+    } else if (!newTargetId && oldTargetId) {
+        // Dragged off into empty space, but it had an original target.
+        // connectionDrag.js now sends { originalData: originalConnection, newTargetId: originalConnection.targetId }
+        // which means newTargetId would be oldTargetId. So this specific `!newTargetId` condition
+        // might not be hit if connectionDrag.js correctly sends the original targetId on revert.
+        // If it's truly null, it implies an attempt to disconnect.
+        console.log('Connection dragged to empty space. Assuming revert to original by connectionDrag.js.');
+        // Ensure store reflects the original state if there's any doubt about visual vs. data sync
+        vsmStore.updateConnection(C_orig.id, { targetId: oldTargetId });
+
+
+    } else {
+        // Invalid drag (e.g., newTargetId is null and there was no oldTargetId, or newTargetId is sourceId).
+        // The drag behavior in connectionDrag.js should handle visual reversion.
+        // We ensure data consistency by reverting to original state if needed.
+        console.log('Invalid connection drag (e.g., to source, or no change and no previous target). Ensuring original state.');
+        vsmStore.updateConnection(C_orig.id, { targetId: oldTargetId }); // Revert to original target
+    }
 	}
 
 	// Connection selection handler
